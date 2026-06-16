@@ -807,7 +807,7 @@ async function loadTxnData() {
     const res = await fetch(TRANSACTIONS_URL + '?t=' + Date.now());
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         TXN_DATA = data;
         localStorage.setItem('txn_data', JSON.stringify(TXN_DATA));
         updateSyncStatus('synced');
@@ -815,6 +815,7 @@ async function loadTxnData() {
       }
     }
   } catch(e) {}
+  // Fetch failed — fall back to localStorage
   const stored = localStorage.getItem('txn_data');
   if (stored) {
     TXN_DATA = JSON.parse(stored);

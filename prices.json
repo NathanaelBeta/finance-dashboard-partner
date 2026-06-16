@@ -1,1 +1,1 @@
-{"generated":"2026-06-16","latest":{},"daily":{"prices":{},"holdings":{"idx":{},"pluang":{},"stockbit_rdn":{},"pluang_cash":{}},"networth":{}},"constants":{},"monthly_liquid":{}}
+{"generated":"2026-06-16","latest":{"USD_IDR":{"price":17716.0,"date":"2026-06-16"}},"daily":{"prices":{"GOLD_USD":{},"USD_IDR":{"2026-06-16":17716.0},"GOLD_IDR_GRAM":{}},"holdings":{"idx":{},"pluang":{},"stockbit_rdn":{"2026-06-16":0},"pluang_cash":{"2026-06-16":0}},"networth":{"2026-06-16":0.0}},"constants":{"GOLD_GRAMS":0,"FUTURES_USD":0,"PAYPAL_USD":0},"monthly_liquid":{}}

@@ -2492,11 +2492,11 @@ async function boot() {
     const cfg = await fetch('config.json');
     if (cfg.ok) {
       const c = await cfg.json();
-      if (c.repo)     REPO     = c.repo;
-      if (c.base_url) BASE_URL = c.base_url;
+      if (c.repo) REPO = c.repo;
+      BASE_URL = c.base_url || ''; // empty string → relative paths (Vercel deploy without base_url)
       applyConfig();
     }
-  } catch(e) {}
+  } catch(e) {} // fetch fails on file:// — keep hardcoded defaults for local dev
   try {
     const res = await fetch(PRICES_URL);
     if (!res.ok) throw new Error('HTTP ' + res.status);

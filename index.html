@@ -1,0 +1,2531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Nathanael — Finance</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0F1117;--surface:#1A1D27;--surface2:#222536;--surface3:#2A2E40;
+  --border:#2E3248;--text:#F0F0F8;--text2:#9095B0;--text3:#565A75;
+  --green:#4ADE80;--green-d:#166534;--green-bg:#0D2818;
+  --red:#F87171;--red-bg:#2A1515;
+  --gold:#FBBF24;--gold-bg:#2A2010;
+  --blue:#60A5FA;--blue-bg:#0F1E35;
+  --purple:#A78BFA;--purple-bg:#1A1535;
+  --radius:14px;--radius-sm:8px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-serif;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+.screen{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:80px;-webkit-overflow-scrolling:touch}
+.screen::-webkit-scrollbar{display:none}
+.tab-hidden{display:none}
+.nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;padding:8px 0 max(12px,env(safe-area-inset-bottom));z-index:100;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:2px 0;color:var(--text3);font-size:10px;font-weight:500;transition:color .15s}
+.nav-item.active{color:var(--green)}
+.nav-icon{font-size:22px;line-height:1.1}
+.page-header{padding:20px 20px 0;padding-top:max(20px,env(safe-area-inset-top))}
+.page-title{font-size:28px;font-weight:700;letter-spacing:-0.5px}
+.page-sub{font-size:13px;color:var(--text2);margin-top:3px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin:12px 16px 0}
+.card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:12px}
+.hero{padding:24px 20px 8px;padding-top:max(24px,env(safe-area-inset-top))}
+.hero-label{font-size:12px;color:var(--text2);font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+.hero-value{font-size:38px;font-weight:700;letter-spacing:-1px;line-height:1.1;margin:6px 0 4px}
+.hero-change{font-size:13px;display:flex;align-items:center;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:20px;font-size:12px;font-weight:600}
+.chip.up{background:var(--green-bg);color:var(--green)}
+.chip.down{background:var(--red-bg);color:var(--red)}
+.chip.neutral{background:var(--surface2);color:var(--text2)}
+.updated{font-size:11px;color:var(--text3);margin-top:4px}
+.alloc-wrap{display:flex;align-items:center;gap:16px}
+.donut-svg{flex-shrink:0}
+.legend{flex:1;display:flex;flex-direction:column;gap:7px}
+.legend-item{display:flex;align-items:center;gap:8px;padding:3px 4px;border-radius:6px}
+.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.legend-name{font-size:12px;color:var(--text2);flex:1}
+.legend-val{font-size:12px;font-weight:600}
+.legend-pct{font-size:11px;color:var(--text3);margin-left:2px}
+.period-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.period-tab{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);background:var(--surface2);border:1px solid var(--border);transition:all .15s}
+.period-tab.active{background:var(--green-bg);color:var(--green);border-color:var(--green-d)}
+.atab{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);background:var(--surface2);border:1px solid var(--border);transition:all .15s}
+.atab.active{background:var(--blue-bg);color:var(--blue);border-color:#1E3A5F}
+/* INTERACTIVE CHART */
+.chart-outer{position:relative;width:100%;margin-top:8px}
+.chart-canvas-wrap{position:relative;width:100%;height:180px}
+.chart-canvas-wrap canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+.tooltip-box{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;pointer-events:none;opacity:0;transition:opacity .1s;white-space:nowrap;z-index:10}
+.tooltip-date{color:var(--text3);font-size:11px;margin-bottom:2px}
+.tooltip-val{color:var(--text);font-weight:600}
+/* ASSET */
+.asset-item{display:flex;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--border)}
+.asset-item:last-child{border-bottom:none}
+.asset-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;margin-right:11px;flex-shrink:0;margin-top:2px}
+.asset-info{flex:1;min-width:0}
+.asset-name{font-size:13px;font-weight:500}
+.asset-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.asset-right{text-align:right;flex-shrink:0;margin-top:2px;min-width:120px}
+.asset-value{font-size:13px;font-weight:600}
+.asset-pct{font-size:11px;color:var(--text3);margin-top:2px}
+.expand-header{display:flex;align-items:flex-start;justify-content:space-between;cursor:pointer;padding:11px 0;user-select:none}
+.expand-arrow{font-size:11px;color:var(--text3);transition:transform .2s;flex-shrink:0}
+.expand-arrow.open{transform:rotate(180deg)}
+.expand-body{display:none}
+.expand-body.open{display:block}
+.divider{height:1px;background:var(--border);margin:4px 0}
+.section-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.section-total{font-size:14px;font-weight:700}
+/* SPENDING */
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 16px 0}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px}
+.sum-label{font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:500}
+.sum-val{font-size:19px;font-weight:700}
+.spend-bar-wrap{margin-bottom:4px;cursor:pointer;border-radius:8px;padding:8px;transition:background .1s}
+.spend-bar-wrap:active{background:var(--surface2)}
+.spend-bar-header{display:flex;justify-content:space-between;margin-bottom:5px}
+.spend-bar-label{font-size:13px;color:var(--text2)}
+.spend-bar-val{font-size:13px;font-weight:600}
+.bar-track{background:var(--surface2);border-radius:4px;height:5px;overflow:hidden}
+.bar-fill{height:5px;border-radius:4px;transition:width .4s}
+.cat-detail{display:none;background:var(--surface2);border-radius:8px;padding:11px;margin-top:6px}
+.cat-detail.open{display:block}
+.day-bars{display:flex;align-items:flex-end;gap:2px;height:44px;margin:8px 0 4px}
+.day-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:44px}
+.day-bar-fill{width:100%;border-radius:2px 2px 0 0;min-height:1px}
+.day-bar-lbl{font-size:8px;color:var(--text3);margin-top:2px;line-height:1}
+/* FILTER */
+.filter-row{display:flex;gap:8px;padding:12px 16px 0;flex-wrap:wrap}
+select.fsel{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);padding:7px 10px;font-size:12px;font-weight:500;cursor:pointer;-webkit-appearance:none;appearance:none;outline:none;flex:1;min-width:90px}
+/* TRANSACTIONS */
+.txn-month-hdr{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:10px 0 4px}
+.txn-item{display:flex;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.txn-item:last-child{border-bottom:none}
+.txn-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;margin-right:10px;flex-shrink:0}
+.txn-info{flex:1;min-width:0}
+.txn-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.txn-meta{font-size:11px;color:var(--text3);margin-top:1px}
+.src-tag{display:inline-block;font-size:10px;padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:500}
+.src-bca{background:#1A2E4A;color:#60A5FA}
+.src-gopay{background:#0D2818;color:#4ADE80}
+.src-cc{background:#2A1A0A;color:#FBBF24}
+.txn-amt{font-size:13px;font-weight:600;text-align:right;flex-shrink:0;margin-left:8px}
+/* LOADING */
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:999}
+#loading p{color:var(--text3);font-size:13px}
+.spinner{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.alert-bar{background:var(--gold-bg);border:1px solid #92400E;border-radius:var(--radius-sm);padding:11px 14px;margin:12px 16px 0;font-size:13px;color:var(--gold);line-height:1.5}
+/* TRANSACTION CRUD MODAL */
+.modal-overlay{position:fixed;inset:0;background:#000A;z-index:200;display:none;align-items:flex-end}
+.modal-overlay.open{display:flex}
+.modal-sheet{background:var(--surface);border-radius:20px 20px 0 0;padding:20px 20px max(20px,env(safe-area-inset-bottom));width:100%;border-top:1px solid var(--border);max-height:90vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px}
+.modal-field{margin-bottom:12px}
+.modal-label{font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;display:block}
+.modal-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:var(--radius-sm);padding:10px;font-size:14px;outline:none;-webkit-appearance:none;appearance:none}
+.modal-row{display:flex;gap:10px}
+.modal-row .modal-field{flex:1}
+.modal-btn{flex:1;padding:12px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;border:none}
+.btn-save{background:var(--green-bg);color:var(--green)}
+.btn-delete{background:var(--red-bg);color:var(--red)}
+.btn-cancel{background:var(--surface2);color:var(--text2)}
+.fab{position:fixed;bottom:88px;right:16px;width:48px;height:48px;border-radius:50%;background:var(--green);color:#0D2818;font-size:26px;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:101;box-shadow:0 4px 16px #0006;font-weight:700;line-height:1}
+/* UPLOAD STATEMENT PANEL */
+#upload-panel{display:none;margin-top:12px;background:var(--surface2);border-radius:8px;padding:12px;border:1px solid var(--border)}
+/* HOLDINGS UPLOAD PANEL */
+#holdings-panel{display:none;margin-top:12px;background:var(--surface2);border-radius:8px;padding:12px;border:1px solid var(--border)}
+/* UPLOAD PREVIEW MODAL */
+.preview-overlay{position:fixed;inset:0;background:#000A;z-index:200;display:none;align-items:flex-end}
+.preview-overlay.open{display:flex}
+.preview-sheet{background:var(--surface);border-radius:20px 20px 0 0;padding:20px 20px max(20px,env(safe-area-inset-bottom));width:100%;border-top:1px solid var(--border);max-height:92vh;overflow-y:auto}
+.preview-row{display:flex;align-items:flex-start;gap:8px;padding:9px 0;border-bottom:1px solid var(--border)}
+.preview-row:last-child{border-bottom:none}
+.preview-row.is-income{background:var(--green-bg);border-radius:6px;padding:9px 6px;margin:0 -6px}
+.preview-row.is-dup{opacity:.4}
+.preview-check{width:18px;height:18px;flex-shrink:0;margin-top:2px;accent-color:var(--green)}
+.preview-meta{flex:1;min-width:0}
+.preview-desc{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.preview-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.preview-note{font-size:11px;color:var(--text3);font-style:italic;margin-top:2px}
+.preview-amt{font-size:13px;font-weight:700;white-space:nowrap;text-align:right}
+.preview-cat-sel{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:3px 5px;font-size:11px;max-width:120px}
+.dup-badge{display:inline-block;background:var(--surface3);color:var(--text3);font-size:10px;border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div id="loading"><div class="spinner"></div><p>Loading prices…</p></div>
+<div class="app" id="app" style="display:none">
+
+<!-- PORTFOLIO -->
+<div class="screen" id="s-portfolio">
+  <div class="hero">
+    <div class="hero-label">Total Net Worth</div>
+    <div class="hero-value" id="nw-val">—</div>
+    <div class="hero-change"><span class="chip neutral" id="nw-chip">—</span><span style="font-size:12px;color:var(--text3)">vs last month</span></div>
+    <div class="updated" id="nw-updated">—</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Allocation</div>
+    <div class="alloc-wrap">
+      <svg id="donut-svg" width="110" height="110" viewBox="0 0 110 110"></svg>
+      <div class="legend" id="alloc-legend"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Trend</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px" id="nw-toggles"></div>
+    <div class="period-tabs" id="nw-period-tabs">
+      <div class="period-tab" onclick="setPeriod('1w',this)">1W</div>
+      <div class="period-tab" onclick="setPeriod('1m',this)">1M</div>
+      <div class="period-tab" onclick="setPeriod('6m',this)">6M</div>
+      <div class="period-tab active" onclick="setPeriod('all',this)">All</div>
+    </div>
+    <div class="chart-outer"><div class="chart-canvas-wrap" id="nw-chart-wrap"><canvas id="nw-canvas"></canvas><div class="tooltip-box" id="nw-tip"><div class="tooltip-date" id="nw-tip-date"></div><div id="nw-tip-vals"></div></div></div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Holdings</div>
+    <div id="holdings-list"></div>
+  </div>
+  <div style="height:8px"></div>
+</div>
+
+<!-- SPENDING -->
+<div class="screen tab-hidden" id="s-spending">
+  <div class="page-header"><div class="page-title">Spending</div></div>
+  <div class="filter-row" style="align-items:center;gap:0">
+    <button onclick="stepMonth(-1)" style="background:var(--surface);border:1px solid var(--border);border-right:none;color:var(--text2);border-radius:var(--radius-sm) 0 0 var(--radius-sm);padding:8px 14px;font-size:16px;cursor:pointer;line-height:1">‹</button>
+    <select class="fsel" id="spend-month" onchange="renderSpending()" style="border-radius:0;flex:1;border-left:none;border-right:none;text-align:center"></select>
+    <button onclick="stepMonth(1)" style="background:var(--surface);border:1px solid var(--border);border-left:none;color:var(--text2);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:8px 14px;font-size:16px;cursor:pointer;line-height:1">›</button>
+  </div>
+  <div class="summary-grid">
+    <div class="sum-card"><div class="sum-label">Income</div><div class="sum-val" id="sp-income" style="color:var(--green)">—</div></div>
+    <div class="sum-card"><div class="sum-label">Expenses</div><div class="sum-val" id="sp-exp" style="color:var(--red)">—</div></div>
+    <div class="sum-card"><div class="sum-label">Saved</div><div class="sum-val" id="sp-saved" style="color:var(--purple)">—</div></div>
+    <div class="sum-card"><div class="sum-label">Savings rate</div><div class="sum-val" id="sp-rate" style="color:var(--purple)">—</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">By category <span style="font-size:10px;font-weight:400;color:var(--text3)">(tap to expand)</span></div>
+    <div id="spend-cats"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Category trend</div>
+    <div style="margin-bottom:8px"><select class="fsel" id="cat-trend-sel" onchange="renderCatTrend()" style="flex:none;width:100%"></select></div>
+    <div class="period-tabs" id="cat-period-tabs">
+      <div class="period-tab" onclick="setCatPeriod('3m',this)">3M</div>
+      <div class="period-tab" onclick="setCatPeriod('6m',this)">6M</div>
+      <div class="period-tab active" onclick="setCatPeriod('all',this)">All</div>
+    </div>
+    <div class="chart-outer"><div class="chart-canvas-wrap" id="cat-trend-wrap"><canvas id="cat-trend-canvas"></canvas><div class="tooltip-box" id="ct-tip"><div class="tooltip-date" id="ct-tip-date"></div><div class="tooltip-val" id="ct-tip-val"></div></div></div></div>
+  </div>
+  <div style="height:8px"></div>
+</div>
+
+<!-- ASSETS -->
+<div class="screen tab-hidden" id="s-assets">
+  <div class="page-header">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="page-title">Assets</div>
+      <div class="page-sub" id="assets-sub">—</div>
+    </div>
+    <div style="margin-top:8px">
+      <button onclick="toggleHoldingsPanel()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">📊 Update Holdings</button>
+    </div>
+    <div id="holdings-panel">
+      <input id="holdings-file-input" type="file" accept=".pdf,.csv,.xlsx,.xls" multiple style="margin-bottom:8px;font-size:12px;color:var(--text2);width:100%">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Pluang CSV · Stockbit PDF/XLSX · Binance PDF — uses same API key as statement uploader</div>
+      <button onclick="handleHoldingsUpload()" class="modal-btn btn-save" style="margin-bottom:6px">✨ Parse with Claude</button>
+      <div id="holdings-status" style="font-size:11px;color:var(--text3);min-height:16px"></div>
+    </div>
+  </div>
+  <div class="alert-bar" id="cc-alert"></div>
+  <div class="card">
+    <div class="section-row"><div class="card-title" style="margin:0">Investments</div><div class="section-total" id="inv-total" style="color:var(--green)">—</div></div>
+    <div id="inv-list"></div>
+  </div>
+  <div class="card">
+    <div class="section-row"><div class="card-title" style="margin:0">Liquid</div><div class="section-total" id="liq-total" style="color:var(--blue)">—</div></div>
+    <div id="liq-list"></div>
+  </div>
+  <div class="card" style="border-color:#4A1515">
+    <div class="section-row"><div class="card-title" style="margin:0;color:var(--red)">Liabilities</div><div class="section-total" id="liab-total" style="color:var(--red)">—</div></div>
+    <div id="liab-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Trend</div>
+    <div class="period-tabs" id="asset-trend-tabs">
+      <div class="period-tab active" onclick="setAssetTrend('invest',this)">Investments</div>
+      <div class="period-tab" onclick="setAssetTrend('liquid',this)">Liquid</div>
+      <div class="period-tab" onclick="setAssetTrend('liab',this)">Liabilities</div>
+    </div>
+    <div class="chart-outer"><div class="chart-canvas-wrap" id="asset-chart-wrap"><canvas id="asset-canvas"></canvas><div class="tooltip-box" id="asset-tip"><div class="tooltip-date" id="asset-tip-date"></div><div class="tooltip-val" id="asset-tip-val"></div></div></div></div>
+  </div>
+  <div style="height:8px"></div>
+</div>
+
+<!-- TRANSACTIONS -->
+<div class="screen tab-hidden" id="s-transactions">
+  <div class="page-header">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="page-title">Transactions</div>
+      <div onclick="toggleSyncPanel()" style="cursor:pointer;text-align:right;padding:2px 0">
+        <div id="sync-status" style="font-size:11px;color:var(--text3)">☁ Not connected · tap to set up</div>
+      </div>
+    </div>
+    <div id="sync-panel" style="display:none;margin-top:12px;background:var(--surface2);border-radius:8px;padding:12px;border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">GitHub sync token</div>
+      <input id="gh-token-input" type="password" class="modal-input" placeholder="ghp_xxxxxxxxxxxx" style="margin-bottom:8px">
+      <div style="display:flex;gap:8px">
+        <button onclick="saveToken()" class="modal-btn btn-save">Connect</button>
+        <button onclick="clearToken()" class="modal-btn btn-delete">Disconnect</button>
+      </div>
+    </div>
+    <div style="margin-top:8px">
+      <button onclick="toggleUploadPanel()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer">📄 Upload Statement</button>
+    </div>
+    <div id="upload-panel">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px">Anthropic API key</div>
+      <input id="anthropic-key-input" type="password" class="modal-input" placeholder="sk-ant-xxxxxxxxxxxx" style="margin-bottom:8px">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button onclick="saveAnthropicKey()" class="modal-btn btn-save">Save Key</button>
+        <button onclick="clearAnthropicKey()" class="modal-btn btn-delete">Clear Key</button>
+      </div>
+      <input id="stmt-file-input" type="file" accept=".pdf,.csv,.txt,.xlsx,.xls" multiple style="margin-bottom:8px;font-size:12px;color:var(--text2);width:100%">
+      <button onclick="handleStatementUpload()" class="modal-btn btn-save" style="margin-bottom:6px">✨ Parse with Claude</button>
+      <div id="upload-status" style="font-size:11px;color:var(--text3);min-height:16px"></div>
+    </div>
+  </div>
+  <div class="filter-row">
+    <select class="fsel" id="txn-cat" onchange="renderTransactions()"></select>
+    <select class="fsel" id="txn-month" onchange="renderTransactions()"></select>
+    <select class="fsel" id="txn-src" onchange="renderTransactions()">
+      <option value="all">All sources</option>
+      <option value="BCA">BCA</option>
+      <option value="GoPay">GoPay</option>
+      <option value="CC">CC</option>
+      <option value="PayPal">PayPal</option>
+    </select>
+  </div>
+  <div style="padding:0 16px" id="txn-list"></div>
+  <div style="height:8px"></div>
+</div>
+
+<nav class="nav">
+  <div class="nav-item active" onclick="showTab('portfolio',this)" id="nav-portfolio"><div class="nav-icon">📊</div><span>Portfolio</span></div>
+  <div class="nav-item" onclick="showTab('spending',this)" id="nav-spending"><div class="nav-icon">💸</div><span>Spending</span></div>
+  <div class="nav-item" onclick="showTab('assets',this)" id="nav-assets"><div class="nav-icon">🏦</div><span>Assets</span></div>
+  <div class="nav-item" onclick="showTab('transactions',this)" id="nav-transactions"><div class="nav-icon">📋</div><span>Transactions</span></div>
+</nav>
+<button class="fab" id="add-txn-btn" onclick="openTxnModal(null)">+</button>
+<div class="modal-overlay" id="txn-modal-overlay" onclick="closeTxnModal(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-title" id="txn-modal-title">Edit Transaction</div>
+    <input type="hidden" id="txn-modal-id">
+    <div class="modal-field"><label class="modal-label">Date</label><input class="modal-input" type="date" id="txn-modal-date"></div>
+    <div class="modal-field"><label class="modal-label">Description</label><input class="modal-input" type="text" id="txn-modal-desc" placeholder="e.g. Indomaret"></div>
+    <div class="modal-row">
+      <div class="modal-field"><label class="modal-label">Category</label><select class="modal-input" id="txn-modal-cat"></select></div>
+      <div class="modal-field"><label class="modal-label">Source</label>
+        <select class="modal-input" id="txn-modal-src">
+          <option value="BCA">BCA</option><option value="GoPay">GoPay</option><option value="CC">CC</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field"><label class="modal-label">Type</label>
+        <select class="modal-input" id="txn-modal-type">
+          <option value="debit">Debit (expense)</option>
+          <option value="credit">Credit (income)</option>
+        </select>
+      </div>
+      <div class="modal-field"><label class="modal-label">Amount (Rp)</label><input class="modal-input" type="number" id="txn-modal-amt" min="0" placeholder="0"></div>
+    </div>
+    <div class="modal-row" style="margin-top:8px">
+      <button class="modal-btn btn-cancel" onclick="closeTxnModal()">Cancel</button>
+      <button class="modal-btn btn-delete" id="txn-modal-del-btn" onclick="deleteTxnModal()">Delete</button>
+      <button class="modal-btn btn-save" onclick="saveTxnModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPLOAD PREVIEW MODAL -->
+<div class="preview-overlay" id="preview-overlay" onclick="closePreview(event)">
+  <div class="preview-sheet" onclick="event.stopPropagation()">
+    <div class="modal-title">Review Parsed Transactions</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Uncheck items to skip · tap category to change · income rows are <span style="color:var(--green)">highlighted</span> — double-check those</div>
+    <div id="preview-list"></div>
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="modal-btn btn-cancel" onclick="closePreview()">Cancel</button>
+      <button class="modal-btn btn-save" id="preview-import-btn" onclick="importFromPreview()">Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- HOLDINGS PREVIEW MODAL -->
+<div class="preview-overlay" id="holdings-preview-overlay" onclick="closeHoldingsPreview(event)">
+  <div class="preview-sheet" onclick="event.stopPropagation()">
+    <div class="modal-title" id="holdings-preview-title">Review Holdings</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px" id="holdings-preview-sub"></div>
+    <div id="holdings-preview-list"></div>
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="modal-btn btn-cancel" onclick="closeHoldingsPreview()">Cancel</button>
+      <button class="modal-btn btn-save" id="holdings-import-btn" onclick="importFromHoldingsPreview()">Confirm &amp; Save</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// NOTE: Transaction history removed — loaded from transactions.json via loadTxnData().
+// Historical entries were committed to transactions.json on 2026-06-16.
+// DO NOT re-add a TXNS constant here; the upload flow is the source of truth.
+const TXNS_REMOVED_PLACEHOLDER = [
+  {month:"2025-06",entries:[
+    {d:"2025-06-01",desc:"Gereja KRI",cat:"Home & Utilities",src:"BCA",type:"debit",amt:15000},
+    {d:"2025-06-03",desc:"Tucano's",cat:"Food",src:"BCA",type:"debit",amt:591624},
+    {d:"2025-06-06",desc:"Q&K Hotpot",cat:"Food",src:"BCA",type:"debit",amt:42000},
+    {d:"2025-06-07",desc:"Leonard Valencio",cat:"Others",src:"BCA",type:"debit",amt:54300},
+    {d:"2025-06-07",desc:"Sherly",cat:"Others",src:"BCA",type:"debit",amt:55633},
+    {d:"2025-06-08",desc:"Gereja KRI",cat:"Home & Utilities",src:"BCA",type:"debit",amt:20000},
+    {d:"2025-06-08",desc:"Vincent Fernandes",cat:"Income",src:"BCA",type:"credit",amt:7000},
+    {d:"2025-06-09",desc:"Kheren Pricilia — IOAA",cat:"Income",src:"BCA",type:"credit",amt:10000000},
+    {d:"2025-06-09",desc:"Andy Wijaya",cat:"Others",src:"BCA",type:"debit",amt:30000},
+    {d:"2025-06-12",desc:"GoPay Topup",cat:"Transfer",src:"BCA",type:"debit",amt:201000},
+    {d:"2025-06-13",desc:"Indomaret",cat:"Food",src:"BCA",type:"debit",amt:32800},
+    {d:"2025-06-13",desc:"Sherly",cat:"Income",src:"BCA",type:"credit",amt:14000},
+    {d:"2025-06-13",desc:"Rocky Roosters",cat:"Food",src:"BCA",type:"debit",amt:29000},
+    {d:"2025-06-15",desc:"GKI Gunsa",cat:"Home & Utilities",src:"BCA",type:"debit",amt:20000},
+    {d:"2025-06-15",desc:"GoPay Topup",cat:"Transfer",src:"BCA",type:"debit",amt:201000},
+    {d:"2025-06-15",desc:"ShopeePay Topup",cat:"Shopping",src:"BCA",type:"debit",amt:200000},
+    {d:"2025-06-16",desc:"Steven Dharmawan",cat:"Income",src:"BCA",type:"credit",amt:7000},
+    {d:"2025-06-18",desc:"Haryo Abie",cat:"Others",src:"BCA",type:"debit",amt:30000},
+    {d:"2025-06-19",desc:"Indomaret",cat:"Food",src:"BCA",type:"debit",amt:45400},
+    {d:"2025-06-19",desc:"BPJS Kesehatan",cat:"Health",src:"BCA",type:"debit",amt:91810},
+    {d:"2025-06-20",desc:"Hisana Fried Chicken",cat:"Food",src:"BCA",type:"debit",amt:76000},
+    {d:"2025-06-22",desc:"GKI Gunsa",cat:"Home & Utilities",src:"BCA",type:"debit",amt:15000},
+    {d:"2025-06-24",desc:"Tokopedia",cat:"Shopping",src:"BCA",type:"debit",amt:387000},
+    {d:"2025-06-25",desc:"Salary — YAY BPK Penabur",cat:"Income",src:"BCA",type:"credit",amt:7486000},
+    {d:"2025-06-29",desc:"GKI Gunsa",cat:"Home & Utilities",src:"BCA",type:"debit",amt:15000},
+  ]},
+  {month:"2025-07",entries:[
+    {d:"2025-07-03",desc:"Shopee",cat:"Shopping",src:"BCA",type:"debit",amt:130420},
+    {d:"2025-07-04",desc:"Saleh Almochdar — IOAA",cat:"Income",src:"BCA",type:"credit",amt:3750000},
+    {d:"2025-07-05",desc:"BPJS Kesehatan",cat:"Health",src:"BCA",type:"debit",amt:302500},
+    {d:"2025-07-07",desc:"Dzaky Rafiansyah — IOAA",cat:"Income",src:"BCA",type:"credit",amt:2462500},
+    {d:"2025-07-08",desc:"Shopee",cat:"Shopping",src:"BCA",type:"debit",amt:753808},
+    {d:"2025-07-10",desc:"Kios Talen",cat:"Food",src:"BCA",type:"debit",amt:5300},
+    {d:"2025-07-10",desc:"Amanda Yovina",cat:"Others",src:"BCA",type:"debit",amt:108000},
+    {d:"2025-07-13",desc:"Jordy",cat:"Others",src:"BCA",type:"debit",amt:66500},
+    {d:"2025-07-14",desc:"Kios Talen",cat:"Food",src:"BCA",type:"debit",amt:11000},
+    {d:"2025-07-15",desc:"Rest Area food",cat:"Food",src:"BCA",type:"debit",amt:28100},
+    {d:"2025-07-15",desc:"Alvin Tanady",cat:"Income",src:"BCA",type:"credit",amt:23500},
+    {d:"2025-07-18",desc:"Maria Beryl",cat:"Others",src:"BCA",type:"debit",amt:71000},
+    {d:"2025-07-24",desc:"Gerard",cat:"Others",src:"BCA",type:"debit",amt:45000},
+    {d:"2025-07-25",desc:"Salary + Bonus",cat:"Income",src:"BCA",type:"credit",amt:13846655},
+    {d:"2025-07-25",desc:"Kedai Yomi",cat:"Food",src:"BCA",type:"debit",amt:27000},
+    {d:"2025-07-25",desc:"Sebastian Jonathan",cat:"Others",src:"BCA",type:"debit",amt:117350},
+    {d:"2025-07-25",desc:"ATM Withdrawal",cat:"Petty Cash",src:"BCA",type:"debit",amt:257500},
+    {d:"2025-07-26",desc:"BBCA Dividend",cat:"Income",src:"BCA",type:"credit",amt:5940000},
+    {d:"2025-07-26",desc:"Smiljan / Lawson / Hisana",cat:"Food",src:"BCA",type:"debit",amt:123700},
+    {d:"2025-07-28",desc:"Kedai Yomi + food",cat:"Food",src:"BCA",type:"debit",amt:109000},
+    {d:"2025-07-28",desc:"Group reimbursements",cat:"Income",src:"BCA",type:"credit",amt:554200},
+    {d:"2025-07-30",desc:"Cinema + Solaria",cat:"Entertainment",src:"BCA",type:"debit",amt:726000},
+    {d:"2025-07-31",desc:"Flazz Topup",cat:"Transport",src:"BCA",type:"debit",amt:50000},
+    {d:"2025-07-31",desc:"Kedai Yomi",cat:"Food",src:"BCA",type:"debit",amt:24000},
+  ]},
+  {month:"2025-08",entries:[
+    {d:"2025-08-01",desc:"Kedai Yomi",cat:"Food",src:"BCA",type:"debit",amt:22000},
+    {d:"2025-08-03",desc:"Madam Lee",cat:"Food",src:"BCA",type:"debit",amt:476000},
+    {d:"2025-08-03",desc:"Aaron Tanjaya",cat:"Income",src:"BCA",type:"credit",amt:357000},
+    {d:"2025-08-05",desc:"Shopee",cat:"Shopping",src:"BCA",type:"debit",amt:1811500},
+    {d:"2025-08-05",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:127600},
+    {d:"2025-08-05",desc:"Samuel Gamma Budiman",cat:"Income",src:"BCA",type:"credit",amt:653000},
+    {d:"2025-08-06",desc:"MyTelkomsel",cat:"Home & Utilities",src:"BCA",type:"debit",amt:71000},
+    {d:"2025-08-11",desc:"ATM Withdrawal",cat:"Petty Cash",src:"BCA",type:"debit",amt:200000},
+    {d:"2025-08-19",desc:"Flazz Topup",cat:"Transport",src:"BCA",type:"debit",amt:12000},
+    {d:"2025-08-22",desc:"Hisana",cat:"Food",src:"BCA",type:"debit",amt:32000},
+    {d:"2025-08-23",desc:"Salary + Bonus",cat:"Income",src:"BCA",type:"credit",amt:13850926},
+    {d:"2025-08-23",desc:"Tokopedia",cat:"Shopping",src:"BCA",type:"debit",amt:352000},
+    {d:"2025-08-23",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:199000},
+    {d:"2025-08-26",desc:"Rafael Alfa",cat:"Income",src:"BCA",type:"credit",amt:800000},
+    {d:"2025-08-27",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:98000},
+    {d:"2025-08-29",desc:"Kedai Yomi",cat:"Food",src:"BCA",type:"debit",amt:20000},
+    {d:"2025-08-31",desc:"Saleh Almochdar — IOAA",cat:"Income",src:"BCA",type:"credit",amt:3750000},
+  ]},
+  {month:"2025-09",entries:[
+    {d:"2025-09-01",desc:"Alfamart + food",cat:"Food",src:"BCA",type:"debit",amt:51100},
+    {d:"2025-09-02",desc:"Flazz Topup",cat:"Transport",src:"BCA",type:"debit",amt:100000},
+    {d:"2025-09-02",desc:"Indomaret",cat:"Food",src:"BCA",type:"debit",amt:147200},
+    {d:"2025-09-05",desc:"MyTelkomsel",cat:"Home & Utilities",src:"BCA",type:"debit",amt:71000},
+    {d:"2025-09-06",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:43000},
+    {d:"2025-09-06",desc:"Flazz Topup",cat:"Transport",src:"BCA",type:"debit",amt:50000},
+    {d:"2025-09-08",desc:"Kedai Yomi",cat:"Food",src:"BCA",type:"debit",amt:15000},
+    {d:"2025-09-10",desc:"I Dewa Bimbel — IOAA",cat:"Income",src:"BCA",type:"credit",amt:3200000},
+    {d:"2025-09-13",desc:"BBCA Dividend",cat:"Income",src:"BCA",type:"credit",amt:3200000},
+    {d:"2025-09-15",desc:"Kedai Yomi",cat:"Food",src:"BCA",type:"debit",amt:22000},
+    {d:"2025-09-18",desc:"ATM Withdrawal",cat:"Petty Cash",src:"BCA",type:"debit",amt:200000},
+    {d:"2025-09-18",desc:"Ayam Penyet",cat:"Food",src:"BCA",type:"debit",amt:66000},
+    {d:"2025-09-19",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:95000},
+    {d:"2025-09-20",desc:"Solaria",cat:"Food",src:"BCA",type:"debit",amt:122000},
+    {d:"2025-09-20",desc:"Shopping",cat:"Shopping",src:"BCA",type:"debit",amt:1599000},
+    {d:"2025-09-20",desc:"Optik Tungga — eyeglasses",cat:"Health",src:"BCA",type:"debit",amt:1400000},
+    {d:"2025-09-21",desc:"Ika Zubaida — IOAA",cat:"Income",src:"BCA",type:"credit",amt:2450000},
+    {d:"2025-09-22",desc:"Shopee",cat:"Shopping",src:"BCA",type:"debit",amt:260815},
+    {d:"2025-09-24",desc:"Flazz Topup",cat:"Transport",src:"BCA",type:"debit",amt:50000},
+    {d:"2025-09-25",desc:"Salary",cat:"Income",src:"BCA",type:"credit",amt:11024259},
+    {d:"2025-09-28",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:172778},
+    {d:"2025-09-29",desc:"ShopeePay Topup",cat:"Shopping",src:"BCA",type:"debit",amt:300000},
+    {d:"2025-09-29",desc:"Kopi Pertiwi",cat:"Food",src:"BCA",type:"debit",amt:192000},
+  ]},
+  {month:"2025-10",entries:[
+    {d:"2025-10-01",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:67000},
+    {d:"2025-10-02",desc:"Kedai Yomi",cat:"Food",src:"BCA",type:"debit",amt:20000},
+    {d:"2025-10-03",desc:"Flazz Topup",cat:"Transport",src:"BCA",type:"debit",amt:20000},
+    {d:"2025-10-03",desc:"Idroc Space",cat:"Entertainment",src:"BCA",type:"debit",amt:1073525},
+    {d:"2025-10-04",desc:"Shopee",cat:"Shopping",src:"BCA",type:"debit",amt:25400},
+    {d:"2025-10-05",desc:"Ishigamaya",cat:"Food",src:"BCA",type:"debit",amt:800360},
+    {d:"2025-10-06",desc:"IOAA Incentive",cat:"Income",src:"BCA",type:"credit",amt:4800000},
+    {d:"2025-10-09",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:35000},
+    {d:"2025-10-10",desc:"BCA Life refund",cat:"Income",src:"BCA",type:"credit",amt:600000},
+    {d:"2025-10-13",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:23500},
+    {d:"2025-10-15",desc:"IOAA income",cat:"Income",src:"BCA",type:"credit",amt:4800000},
+    {d:"2025-10-17",desc:"Shihlin + food",cat:"Food",src:"BCA",type:"debit",amt:134000},
+    {d:"2025-10-19",desc:"Tokopedia",cat:"Shopping",src:"BCA",type:"debit",amt:334000},
+    {d:"2025-10-20",desc:"Kedai Yomi x5",cat:"Food",src:"BCA",type:"debit",amt:110000},
+    {d:"2025-10-24",desc:"Salary",cat:"Income",src:"BCA",type:"credit",amt:11024259},
+    {d:"2025-10-28",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:18000},
+    {d:"2025-10-29",desc:"Dimsum Nathan x3",cat:"Food",src:"BCA",type:"debit",amt:67500},
+  ]},
+  {month:"2025-11",entries:[
+    {d:"2025-11-02",desc:"D'Crepes + Dragon Hotpot",cat:"Food",src:"BCA",type:"debit",amt:390421},
+    {d:"2025-11-04",desc:"Dimsum Nathan",cat:"Food",src:"BCA",type:"debit",amt:22500},
+    {d:"2025-11-07",desc:"Laundry",cat:"Health",src:"BCA",type:"debit",amt:170000},
+    {d:"2025-11-09",desc:"Ayam Crispy",cat:"Food",src:"BCA",type:"debit",amt:45000},
+    {d:"2025-11-12",desc:"Shopee",cat:"Shopping",src:"BCA",type:"debit",amt:25400},
+    {d:"2025-11-13",desc:"Warung MBA",cat:"Food",src:"BCA",type:"debit",amt:50000},
+    {d:"2025-11-18",desc:"Rafael Alfa",cat:"Income",src:"BCA",type:"credit",amt:2300000},
+    {d:"2025-11-19",desc:"Bangsa Sukses seminar",cat:"Entertainment",src:"BCA",type:"debit",amt:300000},
+    {d:"2025-11-21",desc:"ATM Withdrawal",cat:"Petty Cash",src:"BCA",type:"debit",amt:200000},
+    {d:"2025-11-23",desc:"PLN Prepaid",cat:"Home & Utilities",src:"BCA",type:"debit",amt:46000},
+    {d:"2025-11-24",desc:"Alvin Tanady",cat:"Income",src:"BCA",type:"credit",amt:70912},
+    {d:"2025-11-25",desc:"Salary + Bonus",cat:"Income",src:"BCA",type:"credit",amt:15024259},
+    {d:"2025-11-27",desc:"PLN Prepaid",cat:"Home & Utilities",src:"BCA",type:"debit",amt:103000},
+    {d:"2025-11-29",desc:"SPBU petrol",cat:"Transport",src:"BCA",type:"debit",amt:35000},
+    {d:"2025-11-29",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:104200},
+  ]},
+  {month:"2025-12",entries:[
+    {d:"2025-12-01",desc:"Shopee",cat:"Shopping",src:"BCA",type:"debit",amt:239200},
+    {d:"2025-12-02",desc:"MyTelkomsel",cat:"Home & Utilities",src:"BCA",type:"debit",amt:73000},
+    {d:"2025-12-02",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:41000},
+    {d:"2025-12-05",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:55000},
+    {d:"2025-12-06",desc:"Festival food",cat:"Food",src:"BCA",type:"debit",amt:354500},
+    {d:"2025-12-08",desc:"Aeon food",cat:"Food",src:"BCA",type:"debit",amt:193000},
+    {d:"2025-12-12",desc:"Sociolla + Marugame",cat:"Shopping",src:"BCA",type:"debit",amt:283000},
+    {d:"2025-12-14",desc:"Gion The Studio",cat:"Entertainment",src:"BCA",type:"debit",amt:397980},
+    {d:"2025-12-15",desc:"Shopee",cat:"Shopping",src:"BCA",type:"debit",amt:1007000},
+    {d:"2025-12-15",desc:"Agoda hotel",cat:"Travel",src:"BCA",type:"debit",amt:423744},
+    {d:"2025-12-16",desc:"Salary + Bonus",cat:"Income",src:"BCA",type:"credit",amt:21474476},
+    {d:"2025-12-16",desc:"PLN Prepaid",cat:"Home & Utilities",src:"BCA",type:"debit",amt:103000},
+    {d:"2025-12-17",desc:"Uniqlo",cat:"Shopping",src:"BCA",type:"debit",amt:300000},
+    {d:"2025-12-17",desc:"MTHDS 216",cat:"Entertainment",src:"BCA",type:"debit",amt:369000},
+    {d:"2025-12-18",desc:"Birkenstock",cat:"Shopping",src:"BCA",type:"debit",amt:3738300},
+    {d:"2025-12-18",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:160500},
+    {d:"2025-12-19",desc:"Tiketux",cat:"Transport",src:"BCA",type:"debit",amt:60000},
+    {d:"2025-12-21",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:516528},
+    {d:"2025-12-22",desc:"MyTelkomsel",cat:"Home & Utilities",src:"BCA",type:"debit",amt:73000},
+    {d:"2025-12-23",desc:"Agoda hotel",cat:"Travel",src:"BCA",type:"debit",amt:828390},
+    {d:"2025-12-23",desc:"YAY BPK Penabur bonus",cat:"Income",src:"BCA",type:"credit",amt:2000000},
+    {d:"2025-12-24",desc:"Apotek K24",cat:"Health",src:"BCA",type:"debit",amt:31800},
+    {d:"2025-12-24",desc:"Radhiyan Pet",cat:"Health",src:"BCA",type:"debit",amt:315000},
+    {d:"2025-12-25",desc:"The Deli Bakery",cat:"Food",src:"BCA",type:"debit",amt:95900},
+    {d:"2025-12-27",desc:"Trans Studio Bandung",cat:"Entertainment",src:"BCA",type:"debit",amt:398000},
+    {d:"2025-12-29",desc:"OVO Topup",cat:"Transport",src:"BCA",type:"debit",amt:100000},
+    {d:"2025-12-31",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:162000},
+    {d:"2025-11-11",desc:"Shihlin + Tom Sushi",cat:"Food",src:"CC",type:"debit",amt:212165},
+  ]},
+  {month:"2026-01",entries:[
+    {d:"2026-01-02",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:127000},
+    {d:"2026-01-03",desc:"Flazz Topup",cat:"Transport",src:"BCA",type:"debit",amt:100000},
+    {d:"2026-01-03",desc:"ATM Withdrawal",cat:"Petty Cash",src:"BCA",type:"debit",amt:250000},
+    {d:"2026-01-04",desc:"Alim Budiman",cat:"Income",src:"BCA",type:"credit",amt:1000000},
+    {d:"2026-01-04",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:206000},
+    {d:"2026-01-06",desc:"Dzaky — IOAA",cat:"Income",src:"BCA",type:"credit",amt:1575000},
+    {d:"2026-01-06",desc:"Larassati",cat:"Income",src:"BCA",type:"credit",amt:111000},
+    {d:"2026-01-07",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:60500},
+    {d:"2026-01-08",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:88000},
+    {d:"2026-01-08",desc:"MyTelkomsel",cat:"Home & Utilities",src:"BCA",type:"debit",amt:73000},
+    {d:"2026-01-11",desc:"Burhan Nugroho",cat:"Income",src:"BCA",type:"credit",amt:25263000},
+    {d:"2026-01-12",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:22500},
+    {d:"2026-01-14",desc:"Susan/Christy refund",cat:"Income",src:"BCA",type:"credit",amt:500000},
+    {d:"2026-01-15",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:56500},
+    {d:"2026-01-16",desc:"Flazz Topup",cat:"Transport",src:"BCA",type:"debit",amt:100000},
+    {d:"2026-01-17",desc:"Asep Firman",cat:"Income",src:"BCA",type:"credit",amt:5000000},
+    {d:"2026-01-23",desc:"Salary",cat:"Income",src:"BCA",type:"credit",amt:11024259},
+    {d:"2026-01-24",desc:"Shopping",cat:"Shopping",src:"BCA",type:"debit",amt:281800},
+    {d:"2026-01-24",desc:"Haircut",cat:"Health",src:"BCA",type:"debit",amt:70000},
+    {d:"2026-01-26",desc:"Food x5",cat:"Food",src:"BCA",type:"debit",amt:112500},
+    {d:"2026-01-28",desc:"E-deposito matured",cat:"Income",src:"BCA",type:"credit",amt:1002336},
+    {d:"2026-01-30",desc:"Rafael Alfa",cat:"Income",src:"BCA",type:"credit",amt:695000},
+    {d:"2026-01-16",desc:"OH Some + MZ Blok M",cat:"Shopping",src:"CC",type:"debit",amt:305700},
+    {d:"2026-01-17",desc:"Solaria Meikarta",cat:"Food",src:"CC",type:"debit",amt:113000},
+    {d:"2026-01-24",desc:"Gyukichi",cat:"Food",src:"CC",type:"debit",amt:157080},
+    {d:"2026-01-30",desc:"Tuku + CG-HG",cat:"Food",src:"CC",type:"debit",amt:275037},
+    {d:"2026-01-28",desc:"Google One",cat:"Home & Utilities",src:"CC",type:"debit",amt:41625},
+    {d:"2026-02-08",desc:"Planet Sport cycling",cat:"Shopping",src:"CC",type:"debit",amt:728300},
+  ]},
+  {month:"2026-02",entries:[
+    {d:"2026-02-01",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:75999},
+    {d:"2026-02-04",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:39780},
+    {d:"2026-02-06",desc:"ATM Withdrawal",cat:"Petty Cash",src:"BCA",type:"debit",amt:150000},
+    {d:"2026-02-08",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:116060},
+    {d:"2026-02-10",desc:"Samuel Gamma",cat:"Income",src:"BCA",type:"credit",amt:200000},
+    {d:"2026-02-13",desc:"OLS K-Stop",cat:"Shopping",src:"BCA",type:"debit",amt:50400},
+    {d:"2026-02-14",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:118100},
+    {d:"2026-02-15",desc:"Sahabat Setia service",cat:"Health",src:"BCA",type:"debit",amt:205000},
+    {d:"2026-02-16",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:121000},
+    {d:"2026-02-16",desc:"Tiketux",cat:"Transport",src:"BCA",type:"debit",amt:35000},
+    {d:"2026-02-18",desc:"CDM Deposit",cat:"Income",src:"BCA",type:"credit",amt:500000},
+    {d:"2026-02-19",desc:"BnB refund",cat:"Income",src:"BCA",type:"credit",amt:9649},
+    {d:"2026-02-20",desc:"Miniso",cat:"Shopping",src:"BCA",type:"debit",amt:142900},
+    {d:"2026-02-21",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:85350},
+    {d:"2026-02-23",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:22500},
+    {d:"2026-02-25",desc:"Salary + Bonus",cat:"Income",src:"BCA",type:"credit",amt:24741021},
+    {d:"2026-02-25",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:145290},
+    {d:"2026-02-26",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:86712},
+    {d:"2026-02-27",desc:"Apotek K24",cat:"Health",src:"BCA",type:"debit",amt:10281},
+    {d:"2026-02-28",desc:"Detailyn Co",cat:"Health",src:"BCA",type:"debit",amt:50000},
+    {d:"2026-02-28",desc:"Larassati",cat:"Income",src:"BCA",type:"credit",amt:567000},
+    {d:"2026-02-13",desc:"Shopee",cat:"Shopping",src:"CC",type:"debit",amt:30500},
+    {d:"2026-02-14",desc:"Shihlin Cikarang",cat:"Food",src:"CC",type:"debit",amt:47000},
+    {d:"2026-02-15",desc:"Bandung food",cat:"Food",src:"CC",type:"debit",amt:143525},
+    {d:"2026-02-16",desc:"Vivo Pasteur Bandung",cat:"Shopping",src:"CC",type:"debit",amt:203886},
+    {d:"2026-02-21",desc:"Netflix",cat:"Home & Utilities",src:"CC",type:"debit",amt:65000},
+    {d:"2026-02-26",desc:"Shopee + Tawan",cat:"Shopping",src:"CC",type:"debit",amt:746495},
+    {d:"2026-02-27",desc:"KFC + food",cat:"Food",src:"CC",type:"debit",amt:325068},
+    {d:"2026-02-28",desc:"The Hachi",cat:"Food",src:"CC",type:"debit",amt:567600},
+    {d:"2026-02-28",desc:"Google One",cat:"Home & Utilities",src:"CC",type:"debit",amt:41625},
+  ]},
+  {month:"2026-03",entries:[
+    {d:"2026-03-01",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:69600},
+    {d:"2026-03-03",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:130100},
+    {d:"2026-03-05",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:77000},
+    {d:"2026-03-06",desc:"PLN Prepaid",cat:"Home & Utilities",src:"BCA",type:"debit",amt:103000},
+    {d:"2026-03-06",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:24300},
+    {d:"2026-03-07",desc:"KFC",cat:"Food",src:"BCA",type:"debit",amt:34000},
+    {d:"2026-03-08",desc:"Christine + Weanniati — IOAA",cat:"Income",src:"BCA",type:"credit",amt:4800000},
+    {d:"2026-03-09",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:76000},
+    {d:"2026-03-11",desc:"Kimukatsu",cat:"Food",src:"BCA",type:"debit",amt:146916},
+    {d:"2026-03-12",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:43450},
+    {d:"2026-03-12",desc:"ATM Withdrawal",cat:"Petty Cash",src:"BCA",type:"debit",amt:50000},
+    {d:"2026-03-13",desc:"Larassati refund",cat:"Income",src:"BCA",type:"credit",amt:15800000},
+    {d:"2026-03-13",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:36400},
+    {d:"2026-03-16",desc:"Salary",cat:"Income",src:"BCA",type:"credit",amt:11018870},
+    {d:"2026-03-16",desc:"Larassati iPhone repay",cat:"Income",src:"BCA",type:"credit",amt:24248000},
+    {d:"2026-03-16",desc:"OVO Topup",cat:"Transport",src:"BCA",type:"debit",amt:100000},
+    {d:"2026-03-17",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:166888},
+    {d:"2026-03-18",desc:"CGV movie",cat:"Entertainment",src:"BCA",type:"debit",amt:46000},
+    {d:"2026-03-18",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:113600},
+    {d:"2026-03-25",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:62252},
+    {d:"2026-03-26",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:23000},
+    {d:"2026-02-15",desc:"Orchid Fore Bandung",cat:"Food",src:"CC",type:"debit",amt:80000},
+    {d:"2026-02-21",desc:"Netflix",cat:"Home & Utilities",src:"CC",type:"debit",amt:65000},
+    {d:"2026-02-26",desc:"Shopee",cat:"Shopping",src:"CC",type:"debit",amt:620000},
+    {d:"2026-02-28",desc:"Google One",cat:"Home & Utilities",src:"CC",type:"debit",amt:41625},
+    {d:"2026-03-19",desc:"Netflix",cat:"Home & Utilities",src:"CC",type:"debit",amt:65000},
+    {d:"2026-03-24",desc:"Steam",cat:"Entertainment",src:"CC",type:"debit",amt:27200},
+    {d:"2026-03-27",desc:"ShopeeFood + Shopee",cat:"Food",src:"CC",type:"debit",amt:375867},
+    {d:"2026-03-28",desc:"ShopeeFood x2",cat:"Food",src:"CC",type:"debit",amt:55200},
+    {d:"2026-03-28",desc:"Google One",cat:"Home & Utilities",src:"CC",type:"debit",amt:41625},
+    {d:"2026-03-29",desc:"Radhiyan Pet",cat:"Health",src:"CC",type:"debit",amt:507000},
+    {d:"2026-03-30",desc:"ShopeeFood",cat:"Food",src:"CC",type:"debit",amt:29501},
+    {d:"2026-03-31",desc:"IDM The Hive",cat:"Food",src:"CC",type:"debit",amt:95200},
+    {d:"2026-03-17",desc:"MDS216 Aeon",cat:"Shopping",src:"CC",type:"debit",amt:141000},
+  ]},
+  {month:"2026-04",entries:[
+    {d:"2026-04-02",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:57000},
+    {d:"2026-04-04",desc:"Christine+Weanniati — IOAA",cat:"Income",src:"BCA",type:"credit",amt:4800000},
+    {d:"2026-04-04",desc:"Larassati",cat:"Income",src:"BCA",type:"credit",amt:507000},
+    {d:"2026-04-04",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:110600},
+    {d:"2026-04-07",desc:"Soto Ayam",cat:"Food",src:"BCA",type:"debit",amt:40000},
+    {d:"2026-04-10",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:89300},
+    {d:"2026-04-13",desc:"Tiketux",cat:"Transport",src:"BCA",type:"debit",amt:63000},
+    {d:"2026-04-15",desc:"Flazz Topup",cat:"Transport",src:"BCA",type:"debit",amt:50000},
+    {d:"2026-04-17",desc:"Dimsum Nathan",cat:"Food",src:"BCA",type:"debit",amt:22500},
+    {d:"2026-04-19",desc:"ShopeePay Topup",cat:"Shopping",src:"BCA",type:"debit",amt:100000},
+    {d:"2026-04-21",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:65000},
+    {d:"2026-04-22",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:57000},
+    {d:"2026-04-24",desc:"Salary",cat:"Income",src:"BCA",type:"credit",amt:11018870},
+    {d:"2026-04-24",desc:"Larassati gift",cat:"Income",src:"BCA",type:"credit",amt:905000},
+    {d:"2026-04-25",desc:"Detailyn Co",cat:"Health",src:"BCA",type:"debit",amt:70000},
+    {d:"2026-04-25",desc:"Dzaky — IOAA",cat:"Income",src:"BCA",type:"credit",amt:1400000},
+    {d:"2026-04-25",desc:"Gyukichi",cat:"Food",src:"BCA",type:"debit",amt:152065},
+    {d:"2026-04-28",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:34000},
+    {d:"2026-04-29",desc:"Tiketux",cat:"Transport",src:"BCA",type:"debit",amt:30000},
+    {d:"2026-04-29",desc:"Titiek Lucyawati",cat:"Income",src:"BCA",type:"credit",amt:150000},
+    {d:"2026-04-30",desc:"Food + Solaria",cat:"Food",src:"BCA",type:"debit",amt:108500},
+    {d:"2026-04-01",desc:"ShopeeFood",cat:"Food",src:"CC",type:"debit",amt:29501},
+    {d:"2026-04-06",desc:"ShopeeFood x2",cat:"Food",src:"CC",type:"debit",amt:68801},
+    {d:"2026-04-07",desc:"Shopee",cat:"Shopping",src:"CC",type:"debit",amt:29500},
+    {d:"2026-04-08",desc:"ShopeeFood + GoPay",cat:"Food",src:"CC",type:"debit",amt:39200},
+    {d:"2026-04-09",desc:"Tokopedia food x3 + GoPay",cat:"Food",src:"CC",type:"debit",amt:98700},
+    {d:"2026-04-10",desc:"ShopeeFood",cat:"Food",src:"CC",type:"debit",amt:28501},
+    {d:"2026-04-11",desc:"MyTelkomsel + ShopeeFood",cat:"Home & Utilities",src:"CC",type:"debit",amt:110700},
+    {d:"2026-04-04",desc:"RF Grand Outlet + Teazzi",cat:"Food",src:"CC",type:"debit",amt:76000},
+    {d:"2026-04-04",desc:"Fashion Grand Outlet",cat:"Shopping",src:"CC",type:"debit",amt:615500},
+    {d:"2026-04-09",desc:"Sports Station",cat:"Shopping",src:"CC",type:"debit",amt:275400},
+    {d:"2026-04-12",desc:"IDM The Hive",cat:"Food",src:"CC",type:"debit",amt:64600},
+    {d:"2026-03-27",desc:"Shopee installment",cat:"Shopping",src:"CC",type:"debit",amt:206667},
+  ]},
+  {month:"2026-05",entries:[
+    {d:"2026-05-01",desc:"Papaya Fresh Gallery",cat:"Income",src:"BCA",type:"credit",amt:315000},
+    {d:"2026-05-02",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:70800},
+    {d:"2026-05-03",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:66000},
+    {d:"2026-05-04",desc:"Weanniati + Christine — IOAA",cat:"Income",src:"BCA",type:"credit",amt:4800000},
+    {d:"2026-05-04",desc:"Fahmi Aziz — IOAA",cat:"Income",src:"BCA",type:"credit",amt:600000},
+    {d:"2026-05-04",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:37000},
+    {d:"2026-05-05",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:25600},
+    {d:"2026-05-05",desc:"Ariel Wastujaya",cat:"Entertainment",src:"BCA",type:"debit",amt:33734},
+    {d:"2026-05-05",desc:"Flazz Topup",cat:"Transport",src:"BCA",type:"debit",amt:50000},
+    {d:"2026-05-06",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:40000},
+    {d:"2026-05-07",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:23000},
+    {d:"2026-05-12",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:81900},
+    {d:"2026-05-13",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:24000},
+    {d:"2026-05-15",desc:"Traveloka",cat:"Travel",src:"BCA",type:"debit",amt:127500},
+    {d:"2026-05-16",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:83000},
+    {d:"2026-05-17",desc:"Traveloka",cat:"Travel",src:"BCA",type:"debit",amt:121500},
+    {d:"2026-05-17",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:38000},
+    {d:"2026-05-18",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:67000},
+    {d:"2026-05-19",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:49000},
+    {d:"2026-05-20",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:61000},
+    {d:"2026-05-20",desc:"Amanda Yovina",cat:"Income",src:"BCA",type:"credit",amt:19000},
+    {d:"2026-05-21",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:17000},
+    {d:"2026-05-22",desc:"Irene Andiani",cat:"Income",src:"BCA",type:"credit",amt:2850000},
+    {d:"2026-05-22",desc:"E-Deposito cair",cat:"Income",src:"BCA",type:"credit",amt:1006720},
+    {d:"2026-05-22",desc:"Tiketux",cat:"Transport",src:"BCA",type:"debit",amt:35000},
+    {d:"2026-05-23",desc:"Salary",cat:"Income",src:"BCA",type:"credit",amt:11018870},
+    {d:"2026-05-23",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:52900},
+    {d:"2026-05-25",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:14900},
+    {d:"2026-05-26",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:19000},
+    {d:"2026-05-26",desc:"Transport IOAA — Irene",cat:"Income",src:"BCA",type:"credit",amt:170000},
+    {d:"2026-05-27",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:41000},
+    {d:"2026-05-28",desc:"Fahmi Aziz",cat:"Income",src:"BCA",type:"credit",amt:1250000},
+    {d:"2026-05-29",desc:"Flazz Topup",cat:"Transport",src:"BCA",type:"debit",amt:50000},
+    {d:"2026-05-30",desc:"Food",cat:"Food",src:"BCA",type:"debit",amt:32000},
+    {d:"2026-05-30",desc:"Train + Penabur",cat:"Transport",src:"GoPay",type:"debit",amt:83000},
+    {d:"2026-05-29",desc:"Food + Telkomsel",cat:"Food",src:"GoPay",type:"debit",amt:32000},
+    {d:"2026-05-22",desc:"Bhayangkara Field",cat:"Entertainment",src:"GoPay",type:"debit",amt:81000},
+    {d:"2026-05-21",desc:"MyTelkomsel",cat:"Home & Utilities",src:"GoPay",type:"debit",amt:75000},
+    {d:"2026-05-02",desc:"MyTelkomsel",cat:"Home & Utilities",src:"GoPay",type:"debit",amt:72000},
+    {d:"2026-04-13",desc:"Grab ride",cat:"Transport",src:"CC",type:"debit",amt:25625},
+    {d:"2026-04-20",desc:"Cinepolis",cat:"Entertainment",src:"CC",type:"debit",amt:74000},
+    {d:"2026-04-20",desc:"Netflix",cat:"Home & Utilities",src:"CC",type:"debit",amt:65000},
+    {d:"2026-04-28",desc:"Google One",cat:"Home & Utilities",src:"CC",type:"debit",amt:41625},
+    {d:"2026-04-29",desc:"Grab",cat:"Transport",src:"CC",type:"debit",amt:246400},
+    {d:"2026-05-01",desc:"Kimukatsu PIM 3",cat:"Food",src:"CC",type:"debit",amt:142252},
+    {d:"2026-05-01",desc:"Esthera Pakubuwono",cat:"Health",src:"CC",type:"debit",amt:2699000},
+    {d:"2026-05-01",desc:"Barber",cat:"Health",src:"CC",type:"debit",amt:210000},
+    {d:"2026-05-05",desc:"Shopee",cat:"Shopping",src:"CC",type:"debit",amt:220217},
+    {d:"2026-05-10",desc:"Steam",cat:"Entertainment",src:"CC",type:"debit",amt:211000},
+    {d:"2026-04-14",desc:"Shihlin GI",cat:"Food",src:"CC",type:"debit",amt:47000},
+    {d:"2026-04-15",desc:"Kimukatsu GI",cat:"Food",src:"CC",type:"debit",amt:218042},
+    {d:"2026-04-16",desc:"Shihlin GI",cat:"Food",src:"CC",type:"debit",amt:47000},
+    {d:"2026-04-19",desc:"Aeon food",cat:"Food",src:"CC",type:"debit",amt:384570},
+    {d:"2026-05-01",desc:"BP Cikarang",cat:"Transport",src:"CC",type:"debit",amt:286110},
+    {d:"2026-05-03",desc:"Food",cat:"Food",src:"CC",type:"debit",amt:83000},
+  ]},
+];
+
+// ═══════════════════════════════════════════════════════
+// PRICES.JSON URL
+// ═══════════════════════════════════════════════════════
+// ═══ PER-REPO CONFIG — loaded from config.json at boot; falls back to these defaults ═══
+let REPO     = 'NathanaelBeta/finance-dashboard';
+let BASE_URL = 'https://finance-dashboard-ebon-sigma-91.vercel.app';
+
+let PRICES_URL, TRANSACTIONS_URL, HOLDINGS_URL, GH_API_BASE, GH_API, GH_HOLDINGS_API;
+function applyConfig() {
+  PRICES_URL       = BASE_URL ? BASE_URL + '/prices.json'       : 'prices.json';
+  TRANSACTIONS_URL = BASE_URL ? BASE_URL + '/transactions.json' : 'transactions.json';
+  HOLDINGS_URL     = BASE_URL ? BASE_URL + '/holdings.json'     : 'holdings.json';
+  GH_API_BASE      = `https://api.github.com/repos/${REPO}/contents/`;
+  GH_API           = GH_API_BASE + 'transactions.json';
+  GH_HOLDINGS_API  = GH_API_BASE + 'holdings.json';
+}
+applyConfig(); // set defaults synchronously so any code before boot() still works
+
+// ═══════════════════════════════════════════════════════
+// HOLDINGS DATA — loaded from holdings.json at boot
+// ═══════════════════════════════════════════════════════
+// H is populated by loadHoldings() below. All rendering code reads H directly.
+// Helpers to safely read nested values (return 0 / empty obj when H not yet loaded):
+const hBal  = k  => (H && H.balances  && H.balances[k])  || 0;
+const hHold = k  => (H && H.holdings  && H.holdings[k])  || 0;
+const hIdx  = ()  => (H && H.holdings  && H.holdings.idx)  || {};
+const hEtf  = ()  => (H && H.holdings  && H.holdings.etf)  || {};
+const hCryp = k  => (H && H.holdings  && H.holdings.crypto && H.holdings.crypto[k]) || 0;
+const hBond = k  => (H && H.holdings  && H.holdings.bonds  && H.holdings.bonds[k])  || 0;
+const hLiab = ()  => (H && H.liabilities) || {cc_bill:0, installments:[]};
+
+async function loadHoldings() {
+  try {
+    const res = await fetch(HOLDINGS_URL + '?t=' + Date.now());
+    if (res.ok) { H = await res.json(); return; }
+  } catch(e) {}
+  // Fallback: empty state so the app still renders for a fresh instance
+  H = {
+    anchor_date: '', history_start: '',
+    balances: {}, holdings: {crypto:{}, idx:{}, etf:{}, bonds:{}},
+    trades: {idx:[], etf:[]}, idx_baseline: {}, cash_checkpoints: {},
+    liabilities: {cc_bill:0, installments:[]}
+  };
+}
+
+// ═══════════════════════════════════════════════════════
+// GLOBAL STATE
+// ═══════════════════════════════════════════════════════
+let P = null; // prices.json data
+let H = null; // holdings.json data
+let nwPeriod = 'all';
+let assetTrendMode = 'invest';
+let catTrendPeriod = 'all';
+let TXN_DATA = [];
+let nwActive = null; // set of active layer keys for portfolio chart
+
+// ═══════════════════════════════════════════════════════
+// TRANSACTION DATA LAYER (localStorage-backed)
+// ═══════════════════════════════════════════════════════
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+async function loadTxnData() {
+  try {
+    const res = await fetch(TRANSACTIONS_URL + '?t=' + Date.now());
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        TXN_DATA = data;
+        localStorage.setItem('txn_data', JSON.stringify(TXN_DATA));
+        updateSyncStatus('synced');
+        return;
+      }
+    }
+  } catch(e) {}
+  const stored = localStorage.getItem('txn_data');
+  if (stored) {
+    TXN_DATA = JSON.parse(stored);
+  } else {
+    TXN_DATA = []; // fresh instance — populate via Upload Statement
+  }
+  updateSyncStatus(localStorage.getItem('gh_token') ? 'idle' : 'disconnected');
+}
+async function saveTxnData() {
+  localStorage.setItem('txn_data', JSON.stringify(TXN_DATA));
+  const token = localStorage.getItem('gh_token');
+  if (!token) return;
+  updateSyncStatus('saving');
+  const ok = await saveToGitHub(token);
+  updateSyncStatus(ok ? 'synced' : 'error');
+}
+async function saveToGitHub(token) {
+  try {
+    const headers = {
+      'Authorization': 'token ' + token,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+    };
+    const getRes = await fetch(GH_API, { headers });
+    if (!getRes.ok) return false;
+    const current = await getRes.json();
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(TXN_DATA))));
+    const putRes = await fetch(GH_API, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        message: 'chore: update transactions [' + new Date().toISOString().slice(0,10) + ']',
+        content,
+        sha: current.sha,
+      }),
+    });
+    return putRes.ok;
+  } catch(e) { return false; }
+}
+function updateSyncStatus(state) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  const map = {
+    synced:       ['☁ Synced',                      'var(--green)'],
+    saving:       ['☁ Saving…',                     'var(--text2)'],
+    error:        ['⚠ Sync failed · tap to retry',  'var(--red)'],
+    idle:         ['☁ Connected',                   'var(--blue)'],
+    disconnected: ['☁ Not connected · tap to set up','var(--text3)'],
+  };
+  const [text, color] = map[state] || map.disconnected;
+  el.textContent = text;
+  el.style.color = color;
+}
+function toggleSyncPanel() {
+  const panel = document.getElementById('sync-panel');
+  document.getElementById('gh-token-input').value = localStorage.getItem('gh_token') || '';
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+function saveToken() {
+  const t = document.getElementById('gh-token-input').value.trim();
+  if (t) { localStorage.setItem('gh_token', t); updateSyncStatus('idle'); }
+  document.getElementById('sync-panel').style.display = 'none';
+}
+function clearToken() {
+  localStorage.removeItem('gh_token');
+  document.getElementById('gh-token-input').value = '';
+  document.getElementById('sync-panel').style.display = 'none';
+  updateSyncStatus('disconnected');
+}
+
+// ═══════════════════════════════════════════════════════
+// E-STATEMENT UPLOAD — Claude API parsing
+// ═══════════════════════════════════════════════════════
+
+// Anthropic API key management (mirrors saveToken / clearToken pattern)
+function toggleUploadPanel() {
+  const panel = document.getElementById('upload-panel');
+  document.getElementById('anthropic-key-input').value = localStorage.getItem('anthropic_key') || '';
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+function saveAnthropicKey() {
+  const k = document.getElementById('anthropic-key-input').value.trim();
+  if (k) localStorage.setItem('anthropic_key', k);
+  document.getElementById('upload-status').style.color = 'var(--green)';
+  document.getElementById('upload-status').textContent = k ? '✓ Key saved' : '';
+}
+function clearAnthropicKey() {
+  localStorage.removeItem('anthropic_key');
+  document.getElementById('anthropic-key-input').value = '';
+  document.getElementById('upload-status').style.color = 'var(--text3)';
+  document.getElementById('upload-status').textContent = 'Key cleared';
+}
+
+// System prompt builder — inlines the full bank-statement-parser skill rules.
+// usdIdr is the live USD/IDR rate used to convert PayPal Neto amounts to IDR.
+function buildStatementSystemPrompt(usdIdr) { return `\
+You extract every transaction from an Indonesian bank or e-wallet statement using the extract_transactions tool.
+Amounts are always positive; use the \`type\` field for direction (debit = money out, credit = money in).
+Keep \`desc\` verbatim — do not truncate or paraphrase. For every credit entry, write a short reason in \`note\`.
+
+## Identify the source first
+
+| Clue in the file | src value |
+|---|---|
+| REKENING TAHAPAN XPRESI in header | BCA |
+| REKENING KARTU KREDIT in header | CC |
+| E-statement / GoPay / Periode transaksi | GoPay |
+| CSV columns: Tanggal,Waktu,Zona Waktu,Nama,...,Dampak Saldo | PayPal |
+
+---
+
+## BCA Savings (Tahapan Xpresi)
+
+Date: DD/MM format — year from "PERIODE: MEI 2026" in header.
+Month names: JAN=01 FEB=02 MAR=03 APR=04 MEI=05 JUN=06 JUL=07 AGT=08 SEP=09 OKT=10 NOV=11 DES=12.
+Amount: 12,930,185.43 → comma is thousands separator, dot is decimal → 12930185 (drop decimals).
+Debit: rows with DB marker or TRANSAKSI DEBIT TGL:
+Credit: rows with CR marker or TRSF E-BANKING CR
+
+Skip the SALDO (running balance) column — it is not a transaction amount.
+Skip header/footer rows (account number, name, address, period).
+
+Common patterns:
+- TRSF E-BANKING DB … PLUANG EMAS SEJAHT → Transfer (own investment top-up)
+- TRSF E-BANKING DB … GOPAY / ShopeePay / OVO / DANA → Transfer (wallet top-up)
+- KARTU KREDIT/PL … BCA CARD → CC Payment (paying credit card bill)
+- FLAZZ BCA TOPUP → Transfer (Flazz card top-up)
+- TRSF E-BANKING CR … [person name] → apply the income/transfer rule below
+- TRANSAKSI DEBIT TGL: … QR … IDM INDOMA → Food (Indomaret QR payment)
+
+---
+
+## BCA Credit Card
+
+One statement may contain TWO separate card sections (e.g. Mastercard + BCA Everyday Card).
+Parse ALL sections — do not stop after the first card.
+
+Date: DD-MMM (e.g. 13-APR) — year from "TANGGAL REKENING: 12 MEI 2026" in header.
+Amount: 1.234.567 → dot is thousands separator → 1234567.
+Debit: amount with no suffix.
+Credit: amount followed by CR (e.g. 2.029.636 CR).
+src: always CC.
+
+Critical patterns:
+- CICILAN BCA KE 02 DARI 03, [merchant] → CC Payment (installment billing, type debit)
+- REVERSAL CICILAN BCA [merchant] → Transfer (refund of original bill before rebilling — NOT income, NOT CC Payment)
+- PEMBAYARAN - MYBCA → CC Payment (monthly bill payment, type credit on CC statement)
+- SALDO SEBELUMNYA → skip (opening balance)
+- SUBTOTAL / TOTAL lines → skip
+
+---
+
+## GoPay
+
+Date: DD/MM/YYYY at start of each row (HH:MM follows — use only the date).
+Amount: Rp75.000 → dot is thousands separator → 75000.
+Debit (type debit): amount prefixed with -Rp.
+Credit (type credit): amount prefixed with Rp but without minus.
+src: always GoPay.
+
+Common patterns:
+- GoPay top up → Transfer (money arriving from BCA — not income, just a wallet reload)
+- Tiketux → Transport
+- MyTelkomsel → Home & Utilities
+- Gereja / church names (GKI, GBI, KRI, Katolik) → Home & Utilities
+- McDonald's, Burger, food names → Food
+
+Skip: summary rows (Total Coins didapatkan, Total pemasukan, Total pengeluaran).
+
+---
+
+## PayPal (Indonesian CSV)
+
+Columns: Tanggal, Waktu, Zona Waktu, Nama, Jenis, Status, Mata Uang, Bruto, Biaya, Neto, ..., Dampak Saldo
+Date: DD/MM/YYYY in Tanggal column → YYYY-MM-DD.
+Skip any row where Status ≠ Selesai.
+Debit/Credit: Dampak Saldo column — Kredit = credit, Debet = debit.
+Amount: use the Neto column (net after fees). Format: 128,76 (comma=decimal, dot=thousands) — this is USD.
+Convert USD to IDR by multiplying the Neto amount by ${Math.round(usdIdr)}.
+src: always PayPal.
+
+---
+
+## Income vs Transfer — the most important rule
+
+Many incoming credits look like income but are not. Miscategorizing inflates reported income.
+
+Transfer, NOT income:
+1. Friend reimbursements — personal name in description, amount small or mirrors something paid recently.
+2. Own-account moves — transfers between BCA, GoPay, ShopeePay, OVO, DANA, e-wallets; matured deposits returning; Pluang/investment top-ups.
+3. CC installment refunds — REVERSAL CICILAN BCA specifically: bank refunds the original bill before splitting into installments.
+4. P2P crypto cash-outs — selling USDT/crypto via P2P, cash arrives in bank → Transfer (converting an asset).
+5. Wallet top-ups returning — GoPay or ShopeePay balance returned to bank.
+
+Income (cat Income):
+- Salary or payroll from employer (recurring, large, from company/org name).
+- Bonuses.
+- Prize or honorarium from organizations (competition payouts, IOAA, etc.).
+- Consistent payments from an institution.
+
+For ambiguous person-name credits:
+- Large + recurring + sounds like an employer → Income.
+- Small + person's name only + could be paying you back → Transfer.
+Always explain your reasoning in note.
+
+---
+
+## Category guide
+
+Food — restaurants, cafes, GrabFood, GoFood, Indomaret, Alfamart, any food market
+Transport — Grab/Gojek rides, parking, fuel (SPBU/Shell), toll, KAI, Tiketux train/bus
+Shopping — Tokopedia, Shopee, Lazada, TikTok Shop, Steam, physical retail stores
+Home & Utilities — rent, PLN electricity, PDAM water, internet/broadband, church/Gereja donations, phone credit (MyTelkomsel)
+Entertainment — Netflix, Spotify, cinema, games (non-Steam), Google One
+Health — BPJS Kesehatan, pharmacy (Apotek), clinic, hospital, gym membership
+Travel — hotels, airlines, intercity bus/train (not daily commute)
+Income — salary, bonuses, prizes, honorarium, org payments (see income rules above)
+Transfer — wallet top-ups/withdrawals, own-account moves, CC installment refunds, P2P crypto, reimbursements
+CC Payment — monthly CC bill payment; PEMBAYARAN - MYBCA; KARTU KREDIT/PL … BCA CARD
+Petty Cash — ATM cash withdrawals
+Others — anything genuinely ambiguous
+
+---
+
+## What NOT to include
+
+- Running balance (SALDO) column values
+- Statement headers/footers (name, address, account number, period label)
+- Summary lines (SUBTOTAL, TOTAL, SALDO SEBELUMNYA)
+- GoPay summary metrics (Total Coins, Total pemasukan/pengeluaran)
+- Cancelled PayPal transactions (Status ≠ Selesai)
+`; }
+
+const EXTRACT_TOOL_SCHEMA = {
+  name: 'extract_transactions',
+  description: 'Extract all transactions from the bank statement',
+  input_schema: {
+    type: 'object',
+    properties: {
+      transactions: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            d:    { type: 'string', description: 'Date YYYY-MM-DD' },
+            desc: { type: 'string', description: 'Description/merchant' },
+            cat:  { type: 'string', enum: ['Food','Transport','Shopping','Home & Utilities','Entertainment','Health','Travel','Income','Transfer','CC Payment','Petty Cash','Others'] },
+            src:  { type: 'string', enum: ['BCA','GoPay','CC','PayPal'] },
+            type: { type: 'string', enum: ['debit','credit'] },
+            amt:  { type: 'number', description: 'Amount in IDR, always positive' },
+            note: { type: 'string', description: 'Short reason for the chosen cat, especially for credits classified as Income or Transfer. Empty for obvious debits.' }
+          },
+          required: ['d','desc','cat','src','type','amt','note']
+        }
+      }
+    },
+    required: ['transactions']
+  }
+};
+
+// File text extraction: PDF → PDF.js, XLSX → SheetJS, CSV/TXT → FileReader
+async function extractTextFromFile(file) {
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.pdf')) {
+    if (!window.pdfjsLib) throw new Error('PDF.js not loaded — try refreshing');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const ab = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(item => item.str).join(' ') + '\n';
+    }
+    return text;
+  } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+    if (!window.XLSX) throw new Error('SheetJS not loaded — try refreshing');
+    const ab = await file.arrayBuffer();
+    const wb = XLSX.read(ab, { type: 'array' });
+    return wb.SheetNames.map(n => XLSX.utils.sheet_to_csv(wb.Sheets[n])).join('\n\n');
+  } else {
+    // CSV / TXT
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsText(file, 'UTF-8');
+    });
+  }
+}
+
+// Single stateless Claude API call: text → structured transaction array
+async function parseStatementWithClaude(text, apiKey) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 8192,
+      system: buildStatementSystemPrompt((P && P.latest?.USD_IDR?.price) || 18031),
+      tools: [EXTRACT_TOOL_SCHEMA],
+      tool_choice: { type: 'any' },
+      messages: [{ role: 'user', content: text }]
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err.error && err.error.message) || 'API error ' + res.status);
+  }
+  const data = await res.json();
+  console.log('[Claude] token usage:', data.usage);
+  const toolBlock = data.content.find(b => b.type === 'tool_use');
+  if (!toolBlock) throw new Error('Claude did not return a tool_use block — check API key');
+  const txns = toolBlock.input.transactions;
+  if (!Array.isArray(txns)) throw new Error('Claude response was truncated — try again (output may have hit token limit)');
+  return txns;
+}
+
+// Upload orchestrator: read file → call Claude → open preview
+async function handleStatementUpload() {
+  const fileInput = document.getElementById('stmt-file-input');
+  const statusEl = document.getElementById('upload-status');
+  const apiKey = localStorage.getItem('anthropic_key');
+
+  if (!apiKey) {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '⚠ No API key saved — enter and save your Anthropic key first.';
+    return;
+  }
+  if (!fileInput.files.length) {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '⚠ Select a file first.';
+    return;
+  }
+
+  const files = Array.from(fileInput.files);
+  statusEl.style.color = 'var(--text3)';
+
+  try {
+    const allTransactions = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      statusEl.textContent = `📄 [${i + 1}/${files.length}] Reading ${file.name}…`;
+      const text = await extractTextFromFile(file);
+      if (!text.trim()) throw new Error(`Could not extract text from ${file.name} — is this a scanned (image) PDF?`);
+      statusEl.textContent = `✓ [${i + 1}/${files.length}] ${text.length.toLocaleString()} chars · Calling Claude…`;
+      const txns = await parseStatementWithClaude(text, apiKey);
+      allTransactions.push(...txns);
+    }
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = `✓ Claude found ${allTransactions.length} transactions across ${files.length} file${files.length > 1 ? 's' : ''} — review below`;
+    renderUploadPreview(allTransactions);
+  } catch(e) {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '⚠ ' + e.message;
+    console.error('[Upload error]', e);
+  }
+}
+
+// Preview modal: render parsed transactions with checkboxes + editable categories
+let _previewTxns = [];
+
+function renderUploadPreview(transactions) {
+  _previewTxns = transactions;
+  const dupSet = new Set(TXN_DATA.map(t => t.d + '|' + t.amt));
+  const allCats = Object.keys(CAT_ICON);
+
+  let html = '';
+  if (!transactions.length) {
+    html = '<div style="padding:24px;text-align:center;color:var(--text3)">No transactions found in the statement.</div>';
+  }
+  transactions.forEach((t, i) => {
+    const isDup = dupSet.has(t.d + '|' + t.amt);
+    const isIncome = t.cat === 'Income';
+    const isCredit = t.type === 'credit';
+    const amtColor = isCredit ? 'var(--green)' : 'var(--red)';
+    const sign = isCredit ? '+' : '-';
+    const catSel = '<select class="preview-cat-sel" id="pcat-' + i + '" onchange="_previewTxns[' + i + '].cat=this.value">' +
+      allCats.map(c => '<option value="' + c + '"' + (c === t.cat ? ' selected' : '') + '>' + (CAT_ICON[c] || '') + ' ' + c + '</option>').join('') +
+      '</select>';
+    html += '<div class="preview-row' + (isIncome ? ' is-income' : '') + (isDup ? ' is-dup' : '') + '">' +
+      '<input type="checkbox" class="preview-check" id="pchk-' + i + '" ' + (isDup ? '' : 'checked') + ' onchange="updatePreviewImportBtn()">' +
+      '<div class="preview-meta">' +
+        '<div class="preview-desc">' + t.desc + (isDup ? '<span class="dup-badge">duplicate</span>' : '') + '</div>' +
+        '<div class="preview-sub">' + t.d + ' · ' + catSel + ' · <span style="color:var(--text2)">' + t.src + '</span></div>' +
+        (isCredit && t.note ? '<div class="preview-note">💭 ' + t.note + '</div>' : '') +
+      '</div>' +
+      '<div class="preview-amt" style="color:' + amtColor + '">' + sign + Math.round(t.amt).toLocaleString('id-ID') + '</div>' +
+    '</div>';
+  });
+
+  document.getElementById('preview-list').innerHTML = html;
+  updatePreviewImportBtn();
+  document.getElementById('preview-overlay').classList.add('open');
+}
+
+function updatePreviewImportBtn() {
+  let count = 0;
+  _previewTxns.forEach((_, i) => {
+    const chk = document.getElementById('pchk-' + i);
+    if (chk && chk.checked) count++;
+  });
+  document.getElementById('preview-import-btn').textContent = 'Import ' + count + ' transaction' + (count !== 1 ? 's' : '');
+}
+
+function closePreview(e) {
+  if (!e || e.target === document.getElementById('preview-overlay'))
+    document.getElementById('preview-overlay').classList.remove('open');
+}
+
+async function importFromPreview() {
+  const toImport = [];
+  _previewTxns.forEach((t, i) => {
+    const chk = document.getElementById('pchk-' + i);
+    if (!chk || !chk.checked) return;
+    const catEl = document.getElementById('pcat-' + i);
+    // Build TXN_DATA entry (drop the review-only `note` field)
+    toImport.push({
+      id:   genId(),
+      d:    t.d,
+      desc: t.desc,
+      cat:  catEl ? catEl.value : t.cat,
+      src:  t.src,
+      type: t.type,
+      amt:  t.amt
+    });
+  });
+
+  if (!toImport.length) { alert('No transactions selected.'); return; }
+
+  TXN_DATA.push(...toImport);
+  await saveTxnData();
+  closePreview();
+  initSpendDropdown();
+  initTxnDropdowns();
+  renderTransactions();
+  renderSpending();
+
+  document.getElementById('upload-status').style.color = 'var(--green)';
+  document.getElementById('upload-status').textContent = '✓ Imported ' + toImport.length + ' transaction' + (toImport.length !== 1 ? 's' : '');
+}
+
+// ═══════════════════════════════════════════════════════
+// INVESTMENT HOLDINGS UPLOAD — Claude API parsing
+// ═══════════════════════════════════════════════════════
+
+function toggleHoldingsPanel() {
+  const panel = document.getElementById('holdings-panel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+function buildInvestmentSystemPrompt() { return `\
+You extract investment trade history and holdings from Pluang, Stockbit, or Binance export files.
+Use the extract_investment_holdings tool. Only include sections relevant to the detected source.
+
+## Identify the source
+
+| Clue in the file | source value |
+|---|---|
+| Columns: Order Date, Transaction, Product Name, Quantity + "Pluang" / "PT PG Berjangka" | Pluang |
+| Header: PT. STOCKBIT SEKURITAS DIGITAL / columns: Trans Date, Stock, Buy/Sell, Lot | Stockbit |
+| Header: Welcome to your new Binance statement / CONSOLIDATED ACCOUNT SUMMARY | Binance |
+
+---
+
+## Pluang CSV (etf_trades)
+
+Include ONLY rows where ALL three conditions hold:
+- Transaction = US Stocks
+- Transaction Type = BUY
+- Status = SUCCESS
+
+Skip: Top Up, Forex, Dividend Received, Yield Received, INTER WALLET TRANSFER, FUND MOVEMENT, CANCELLED.
+
+Extract per matching row:
+- Order Date → YYYY-MM-DD (e.g. "Tue, Sep 23, 2025" → "2025-09-23")
+- Product Name → ticker: SPY or VOO
+- Quantity → decimal shares, preserve all significant figures
+
+---
+
+## Stockbit IDX (idx_trades)
+
+Columns: Trans Date | Due Date | Stock | Buy/Sell | Lot | Price | ...
+
+Include every row with a valid stock ticker (2–5 uppercase letters).
+Skip blank rows, page headers, summary rows.
+
+Date: DD/MM/YYYY in Trans Date column → YYYY-MM-DD (use Trans Date, NOT Due Date).
+lot_delta: Buy/Sell = B → positive; S → negative.
+
+---
+
+## Binance PDF (crypto_snapshot)
+
+Source: "Your Consolidated Top 10 Assets" table.
+Each asset line shows two quantities separated by /: "0.070820 / 0.070800" → use the FIRST number.
+Include: BTC, ETH, BNB, SOL, USDT, USDC.
+Skip any asset whose total USD value is under $1.
+This replaces the ENTIRE crypto snapshot — include all six fields (use 0 if asset not present).
+`; }
+
+const INVESTMENT_TOOL_SCHEMA = {
+  name: 'extract_investment_holdings',
+  description: 'Extract investment trades or holdings snapshot from the uploaded file',
+  input_schema: {
+    type: 'object',
+    properties: {
+      source: { type: 'string', enum: ['Pluang', 'Stockbit', 'Binance'] },
+      etf_trades: {
+        type: 'array',
+        description: 'Pluang only — each successful US ETF buy',
+        items: {
+          type: 'object',
+          properties: {
+            date:     { type: 'string', description: 'YYYY-MM-DD' },
+            ticker:   { type: 'string', enum: ['SPY', 'VOO'] },
+            quantity: { type: 'number', description: 'Fractional shares purchased' }
+          },
+          required: ['date', 'ticker', 'quantity']
+        }
+      },
+      idx_trades: {
+        type: 'array',
+        description: 'Stockbit only — every IDX buy or sell',
+        items: {
+          type: 'object',
+          properties: {
+            date:      { type: 'string', description: 'YYYY-MM-DD (Trans Date)' },
+            ticker:    { type: 'string', description: 'Stock ticker e.g. BBCA' },
+            lot_delta: { type: 'number', description: 'Positive=buy lots, negative=sell lots' }
+          },
+          required: ['date', 'ticker', 'lot_delta']
+        }
+      },
+      crypto_snapshot: {
+        type: 'object',
+        description: 'Binance only — current quantity of each major coin (0 if absent)',
+        properties: {
+          BTC:  { type: 'number' },
+          ETH:  { type: 'number' },
+          BNB:  { type: 'number' },
+          SOL:  { type: 'number' },
+          USDC: { type: 'number' },
+          USDT: { type: 'number' }
+        }
+      }
+    },
+    required: ['source']
+  }
+};
+
+async function parseInvestmentWithClaude(text, apiKey) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 8192,
+      system: buildInvestmentSystemPrompt(),
+      tools: [INVESTMENT_TOOL_SCHEMA],
+      tool_choice: { type: 'any' },
+      messages: [{ role: 'user', content: text }]
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err.error && err.error.message) || 'API error ' + res.status);
+  }
+  const data = await res.json();
+  console.log('[Claude holdings] token usage:', data.usage);
+  const toolBlock = data.content.find(b => b.type === 'tool_use');
+  if (!toolBlock) throw new Error('Claude did not return a tool_use block — check API key');
+  return toolBlock.input;
+}
+
+async function handleHoldingsUpload() {
+  const fileInput = document.getElementById('holdings-file-input');
+  const statusEl = document.getElementById('holdings-status');
+  const apiKey = localStorage.getItem('anthropic_key');
+
+  if (!apiKey) {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '⚠ No API key — open the Transactions tab and save your Anthropic key first.';
+    return;
+  }
+  if (!fileInput.files.length) {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '⚠ Select a file first.';
+    return;
+  }
+
+  const files = Array.from(fileInput.files);
+  statusEl.style.color = 'var(--text3)';
+
+  try {
+    // Merge all files' results (same source type assumed per upload batch)
+    let merged = null;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      statusEl.textContent = `📄 [${i + 1}/${files.length}] Reading ${file.name}…`;
+      const text = await extractTextFromFile(file);
+      if (!text.trim()) throw new Error(`Could not extract text from ${file.name}`);
+      statusEl.textContent = `✓ [${i + 1}/${files.length}] ${text.length.toLocaleString()} chars · Calling Claude…`;
+      const result = await parseInvestmentWithClaude(text, apiKey);
+      if (!merged) {
+        merged = result;
+      } else if (merged.source === result.source) {
+        // Merge same-source results
+        if (result.etf_trades) merged.etf_trades = [...(merged.etf_trades || []), ...result.etf_trades];
+        if (result.idx_trades) merged.idx_trades = [...(merged.idx_trades || []), ...result.idx_trades];
+        if (result.crypto_snapshot) merged.crypto_snapshot = result.crypto_snapshot;
+      }
+    }
+
+    const tradeCount = (merged.etf_trades || merged.idx_trades || []).length ||
+                       (merged.crypto_snapshot ? Object.keys(merged.crypto_snapshot).length : 0);
+    statusEl.style.color = 'var(--green)';
+    statusEl.textContent = `✓ Extracted from ${merged.source} (${tradeCount} items) — review below`;
+    renderHoldingsPreview(merged);
+  } catch(e) {
+    statusEl.style.color = 'var(--red)';
+    statusEl.textContent = '⚠ ' + e.message;
+    console.error('[Holdings upload error]', e);
+  }
+}
+
+// Derive current ETF holdings by summing all trades from scratch (no ETF baseline)
+function computeEtfFromTrades(allTrades) {
+  const result = {};
+  allTrades.forEach(([, ticker, qty]) => {
+    result[ticker] = (result[ticker] || 0) + qty;
+  });
+  return result;
+}
+
+// Derive current IDX holdings by applying all trades onto the baseline
+function computeIdxFromTrades(baseline, allTrades) {
+  const result = {...baseline};
+  allTrades.forEach(([, ticker, delta]) => {
+    result[ticker] = (result[ticker] || 0) + delta;
+    if (result[ticker] <= 0) delete result[ticker];
+  });
+  return result;
+}
+
+async function saveHoldingsToGitHub(token) {
+  try {
+    const headers = {
+      'Authorization': 'token ' + token,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+    };
+    const getRes = await fetch(GH_HOLDINGS_API, { headers });
+    if (!getRes.ok) return false;
+    const current = await getRes.json();
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(H, null, 2))));
+    const putRes = await fetch(GH_HOLDINGS_API, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        message: 'chore: update holdings [' + new Date().toISOString().slice(0,10) + ']',
+        content,
+        sha: current.sha,
+      }),
+    });
+    return putRes.ok;
+  } catch(e) { return false; }
+}
+
+let _holdingsPreviewResult = null;
+
+function renderHoldingsPreview(result) {
+  _holdingsPreviewResult = result;
+  document.getElementById('holdings-preview-title').textContent = 'Review ' + result.source + ' Holdings';
+
+  const existingEtfSet = new Set((H.trades.etf || []).map(([d,t,q]) => d + '|' + t + '|' + q));
+  const existingIdxSet = new Set((H.trades.idx || []).map(([d,t,l]) => d + '|' + t + '|' + l));
+
+  let html = '', newCount = 0, dupCount = 0;
+
+  if (result.source === 'Pluang' && result.etf_trades) {
+    document.getElementById('holdings-preview-sub').textContent = 'New ETF trades to append to holdings.json';
+    result.etf_trades.forEach(t => {
+      const key = t.date + '|' + t.ticker + '|' + t.quantity;
+      const isDup = existingEtfSet.has(key);
+      if (isDup) dupCount++; else newCount++;
+      html += '<div class="preview-row' + (isDup ? ' is-dup' : '') + '">' +
+        '<div class="preview-meta">' +
+          '<div class="preview-desc">' + t.ticker + (isDup ? '<span class="dup-badge">already in</span>' : '') + '</div>' +
+          '<div class="preview-sub">' + t.date + ' · +' + t.quantity + ' shares</div>' +
+        '</div>' +
+      '</div>';
+    });
+    document.getElementById('holdings-import-btn').textContent = 'Add ' + newCount + ' new trade' + (newCount !== 1 ? 's' : '');
+  } else if (result.source === 'Stockbit' && result.idx_trades) {
+    const histStart = H.history_start || '1900-01-01';
+    document.getElementById('holdings-preview-sub').textContent = 'New IDX trades to append to holdings.json';
+    let preBaselineCount = 0;
+    result.idx_trades.forEach(t => {
+      const key = t.date + '|' + t.ticker + '|' + t.lot_delta;
+      const isPreBaseline = t.date < histStart;
+      const isDup = !isPreBaseline && existingIdxSet.has(key);
+      if (isPreBaseline) { preBaselineCount++; return; }
+      if (isDup) dupCount++; else newCount++;
+      const sign = t.lot_delta > 0 ? '+' : '';
+      const color = t.lot_delta > 0 ? 'var(--green)' : 'var(--red)';
+      html += '<div class="preview-row' + (isDup ? ' is-dup' : '') + '">' +
+        '<div class="preview-meta">' +
+          '<div class="preview-desc">' + t.ticker + (isDup ? '<span class="dup-badge">already in</span>' : '') + '</div>' +
+          '<div class="preview-sub">' + t.date + ' · <span style="color:' + color + '">' + sign + t.lot_delta + ' lots</span></div>' +
+        '</div>' +
+      '</div>';
+    });
+    if (preBaselineCount) {
+      document.getElementById('holdings-preview-sub').textContent +=
+        ' (' + preBaselineCount + ' pre-' + histStart + ' trade' + (preBaselineCount > 1 ? 's' : '') + ' skipped — already in baseline)';
+    }
+    document.getElementById('holdings-import-btn').textContent = 'Add ' + newCount + ' new trade' + (newCount !== 1 ? 's' : '');
+  } else if (result.source === 'Binance' && result.crypto_snapshot) {
+    document.getElementById('holdings-preview-sub').textContent = 'Replaces current crypto snapshot in holdings.json';
+    const coins = Object.entries(result.crypto_snapshot).filter(([, v]) => v > 0);
+    coins.forEach(([coin, qty]) => {
+      html += '<div class="preview-row">' +
+        '<div class="preview-meta">' +
+          '<div class="preview-desc">' + coin + '</div>' +
+          '<div class="preview-sub">' + qty + '</div>' +
+        '</div>' +
+      '</div>';
+    });
+    newCount = coins.length;
+    document.getElementById('holdings-import-btn').textContent = 'Replace crypto snapshot';
+  } else {
+    html = '<div style="padding:24px;text-align:center;color:var(--text3)">No data extracted — check the file type and try again.</div>';
+    document.getElementById('holdings-import-btn').textContent = 'Confirm & Save';
+  }
+
+  if (dupCount) {
+    document.getElementById('holdings-preview-sub').textContent +=
+      ' (' + dupCount + ' duplicate' + (dupCount > 1 ? 's' : '') + ' will be skipped)';
+  }
+
+  document.getElementById('holdings-preview-list').innerHTML = html;
+  document.getElementById('holdings-preview-overlay').classList.add('open');
+}
+
+function closeHoldingsPreview(e) {
+  if (!e || e.target === document.getElementById('holdings-preview-overlay'))
+    document.getElementById('holdings-preview-overlay').classList.remove('open');
+}
+
+async function importFromHoldingsPreview() {
+  const result = _holdingsPreviewResult;
+  if (!result) return;
+
+  const existingEtfSet = new Set((H.trades.etf || []).map(([d,t,q]) => d + '|' + t + '|' + q));
+  const existingIdxSet = new Set((H.trades.idx || []).map(([d,t,l]) => d + '|' + t + '|' + l));
+
+  if (result.source === 'Pluang' && result.etf_trades) {
+    const newTrades = result.etf_trades
+      .filter(t => !existingEtfSet.has(t.date + '|' + t.ticker + '|' + t.quantity))
+      .map(t => [t.date, t.ticker, t.quantity]);
+    H.trades.etf = [...(H.trades.etf || []), ...newTrades]
+      .sort((a, b) => a[0].localeCompare(b[0]));
+    H.holdings.etf = computeEtfFromTrades(H.trades.etf);
+  } else if (result.source === 'Stockbit' && result.idx_trades) {
+    const histStart = H.history_start || '1900-01-01';
+    const newTrades = result.idx_trades
+      .filter(t => t.date >= histStart)
+      .filter(t => !existingIdxSet.has(t.date + '|' + t.ticker + '|' + t.lot_delta))
+      .map(t => [t.date, t.ticker, t.lot_delta]);
+    H.trades.idx = [...(H.trades.idx || []), ...newTrades]
+      .sort((a, b) => a[0].localeCompare(b[0]));
+    H.holdings.idx = computeIdxFromTrades(H.idx_baseline || {}, H.trades.idx);
+  } else if (result.source === 'Binance' && result.crypto_snapshot) {
+    H.holdings.crypto = result.crypto_snapshot;
+  } else {
+    alert('Nothing to import.'); return;
+  }
+
+  const btn = document.getElementById('holdings-import-btn');
+  btn.textContent = 'Saving…';
+  btn.disabled = true;
+
+  const token = localStorage.getItem('gh_token');
+  const saved = token ? await saveHoldingsToGitHub(token) : false;
+
+  closeHoldingsPreview();
+  renderAssets();
+  calcTotals();
+
+  document.getElementById('holdings-status').style.color = saved ? 'var(--green)' : 'var(--text3)';
+  document.getElementById('holdings-status').textContent = saved
+    ? '✓ Holdings updated and saved to GitHub'
+    : '✓ Holdings updated locally (no GitHub token — connect in Transactions tab to sync)';
+
+  btn.disabled = false;
+}
+
+// ═══════════════════════════════════════════════════════
+// FORMATTERS
+// ═══════════════════════════════════════════════════════
+function fmtIDR(n) {
+  if (!n && n !== 0) return '—';
+  return 'Rp ' + Math.round(n).toLocaleString('id-ID');
+}
+function fmtShortIDR(n) {
+  if (n >= 1e9) return 'Rp ' + (n/1e9).toFixed(2).replace('.',',') + ' M';
+  if (n >= 1e6) return 'Rp ' + Math.round(n/1e6).toLocaleString('id-ID') + ' jt';
+  return fmtIDR(n);
+}
+function monthLabel(m) {
+  return new Date(m + '-01').toLocaleString('en', {month:'short', year:'2-digit'});
+}
+function fullMonthLabel(m) {
+  return new Date(m + '-01').toLocaleString('en', {month:'long', year:'numeric'});
+}
+
+// ═══════════════════════════════════════════════════════
+// ASSET CALCULATIONS
+// ═══════════════════════════════════════════════════════
+function calcTotals() {
+  if (!P) return null;
+  const l = P.latest;
+  const r = l.USD_IDR.price;
+  const gold   = hHold('gold_grams') * l.GOLD_IDR_GRAM.price;
+  const crypto = (hCryp('BTC') * l.BTC.price +
+                  hCryp('ETH') * l.ETH.price +
+                  hCryp('BNB') * l.BNB.price +
+                  hCryp('SOL') * l.SOL.price +
+                  hCryp('USDC') + hCryp('USDT') +
+                  hHold('futures_usd')) * r;
+  const idx    = Object.entries(hIdx()).reduce((s,[t,lots])=>s+lots*100*(l[t]?.price||0),0);
+  const us     = (hEtf().SPY||0) * (l.SPY?.price||0) * r +
+                 (hEtf().VOO||0) * (l.VOO?.price||0) * r;
+  const bonds  = hBond('sbr014') + hBond('fr0076');
+  const invest = gold + crypto + idx + us + bonds;
+  const liquid = hBal('bca_savings') + hBal('bca_deposits') + hBal('bca_usd_pocket')*r +
+                 hBal('gopay') + hBal('paypal_usd')*r + hBal('cash') +
+                 hBal('stockbit_rdn') + hBal('pluang_cash_usd')*r;
+  const liab   = hLiab().cc_bill;
+  return {gold, crypto, idx, us, bonds, invest, liquid, liab,
+          netWorth: invest + liquid - liab};
+}
+
+// ═══════════════════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════════════════
+function showTab(name, el) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.add("tab-hidden"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.getElementById("s-" + name).classList.remove("tab-hidden");
+  document.getElementById("nav-" + name).classList.add("active");
+  document.getElementById("add-txn-btn").style.display = name === "transactions" ? "flex" : "none";
+  requestAnimationFrame(() => {
+    if (name === "portfolio") { renderNWChart(); }
+    if (name === "assets") renderAssetTrendChart();
+    if (name === "spending") renderCatTrend();
+  });
+}
+function toggleExp(id) {
+  const b = document.getElementById('eb-' + id);
+  const a = document.getElementById('ea-' + id);
+  if (b) b.classList.toggle('open');
+  if (a) a.classList.toggle('open');
+}
+
+// ═══════════════════════════════════════════════════════
+// INTERACTIVE CHART ENGINE
+// ═══════════════════════════════════════════════════════
+function drawChart(canvasId, wrapId, tipId, datePts, vals, color, yFmt, heightPx) {
+  const canvas = document.getElementById(canvasId);
+  const wrap   = document.getElementById(wrapId);
+  const tip    = document.getElementById(tipId);
+  if (!canvas || !wrap || vals.length < 2) return;
+
+  const H  = heightPx || 180;
+  const W  = wrap.getBoundingClientRect().width || wrap.offsetWidth || 340;
+  const DPR = window.devicePixelRatio || 1;
+  wrap.style.height = H + 'px';
+  canvas.width  = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+
+  const ctx = canvas.getContext('2d');
+  const PAD = {t:10, b:28, l:62, r:10};
+  const cW  = W - PAD.l - PAD.r;
+  const cH  = H - PAD.t - PAD.b;
+  const min = 0;
+  const max = Math.max(...vals) || 1;
+  const range = max;
+  const xOf = i => PAD.l + (i / (vals.length - 1)) * cW;
+  const yOf = v => PAD.t + (1 - v / range) * cH;
+
+  function paint() {
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    // Grid + Y labels
+    ctx.strokeStyle = '#2E324840'; ctx.lineWidth = 1;
+    ctx.fillStyle = '#565A75';
+    ctx.font = '10px -apple-system,sans-serif';
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= 4; i++) {
+      const v = min + (range * i / 4), y = yOf(v);
+      ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(W - PAD.r, y); ctx.stroke();
+      ctx.fillText(yFmt ? yFmt(v) : fmtShortIDR(v), PAD.l - 4, y + 3);
+    }
+
+    // X labels — max one label per 48px to avoid cramping
+    ctx.textAlign = 'center';
+    const maxLabels = Math.floor(cW / 48);
+    const step = Math.max(1, Math.floor(datePts.length / maxLabels));
+    for (let i = 0; i < datePts.length; i += step) {
+      ctx.fillText(datePts[i].slice(2, 7).replace('-', '/'), xOf(i), H - 6);
+    }
+
+    // Area
+    const grad = ctx.createLinearGradient(0, PAD.t, 0, H - PAD.b);
+    grad.addColorStop(0, color + '30'); grad.addColorStop(1, color + '04');
+    ctx.beginPath();
+    ctx.moveTo(xOf(0), yOf(vals[0]));
+    for (let i = 1; i < vals.length; i++) ctx.lineTo(xOf(i), yOf(vals[i]));
+    ctx.lineTo(xOf(vals.length - 1), H - PAD.b);
+    ctx.lineTo(xOf(0), H - PAD.b);
+    ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    ctx.moveTo(xOf(0), yOf(vals[0]));
+    for (let i = 1; i < vals.length; i++) ctx.lineTo(xOf(i), yOf(vals[i]));
+    ctx.strokeStyle = color; ctx.lineWidth = 2;
+    ctx.lineJoin = 'round'; ctx.stroke();
+  }
+
+  paint();
+
+  const showTip = (clientX, clientY) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx  = clientX - rect.left;
+    const idx = Math.max(0, Math.min(vals.length - 1, Math.round((mx - PAD.l) / cW * (vals.length - 1))));
+    if (mx < PAD.l || mx > W - PAD.r) { tip.style.opacity = 0; paint(); return; }
+    paint();
+    // Dot
+    const px = xOf(idx), py = yOf(vals[idx]);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#0F1117'; ctx.fill();
+    ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2);
+    ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+    // Vertical line
+    ctx.beginPath(); ctx.moveTo(px, PAD.t); ctx.lineTo(px, H - PAD.b);
+    ctx.strokeStyle = color + '40'; ctx.lineWidth = 1; ctx.stroke();
+    // Tooltip
+    const tipDate = document.getElementById(tipId + '-date');
+    const tipVal  = document.getElementById(tipId + '-val');
+    if (tipDate) tipDate.textContent = datePts[idx];
+    if (tipVal)  tipVal.textContent  = yFmt ? yFmt(vals[idx]) : fmtIDR(vals[idx]);
+    let tx = px + 10;
+    if (tx + 140 > W) tx = px - 150;
+    tip.style.left    = Math.max(PAD.l, tx) + 'px';
+    tip.style.top     = Math.max(PAD.t, py - 36) + 'px';
+    tip.style.opacity = 1;
+  };
+
+  canvas.addEventListener('mousemove',  e => showTip(e.clientX, e.clientY));
+  canvas.addEventListener('mouseleave', () => { tip.style.opacity = 0; paint(); });
+  canvas.addEventListener('touchmove',  e => { e.preventDefault(); showTip(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
+  canvas.addEventListener('touchend',   () => { tip.style.opacity = 0; paint(); });
+}
+
+// ═══════════════════════════════════════════════════════
+// DONUT CHART
+// ═══════════════════════════════════════════════════════
+function drawDonut(slices) {
+  const svg = document.getElementById('donut-svg');
+  const cx=55, cy=55, r=42, sw=16, circ=2*Math.PI*r;
+  let html = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#222536" stroke-width="${sw}"/>`;
+  let offset = 0;
+  slices.forEach(s => {
+    const dash = s.pct * circ;
+    html += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${sw}" stroke-dasharray="${dash} ${circ}" stroke-dashoffset="${-offset*circ}" transform="rotate(-90 ${cx} ${cy})"/>`;
+    offset += s.pct;
+  });
+  svg.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════
+// PORTFOLIO TAB
+// ═══════════════════════════════════════════════════════
+function renderPortfolio() {
+  if (!P) return;
+  const c = calcTotals();
+  const l = P.latest;
+
+  // Hero
+  document.getElementById('nw-val').textContent = fmtIDR(c.netWorth);
+  document.getElementById('nw-updated').textContent =
+    `Prices: ${l.GOLD_IDR_GRAM.date}  ·  USD/IDR: ${Math.round(l.USD_IDR.price).toLocaleString('id-ID')}`;
+
+  // MoM from daily networth
+  const nwEntries = Object.entries(P.daily.networth).sort((a,b) => a[0]<b[0]?-1:1);
+  if (nwEntries.length >= 30) {
+    const now  = nwEntries[nwEntries.length-1][1];
+    const prev = nwEntries[nwEntries.length-31]?.[1] || nwEntries[0][1];
+    const diff = now - prev;
+    const pct  = (diff/prev*100).toFixed(1);
+    const chip = document.getElementById('nw-chip');
+    chip.textContent = `${diff>=0?'↑':'↓'} ${fmtShortIDR(Math.abs(diff))} (${pct}%)`;
+    chip.className = `chip ${diff>=0?'up':'down'}`;
+  }
+
+  // Donut + legend
+  const total = c.invest + c.liquid;
+  const slices = [
+    {label:'Gold',   val:c.gold,   color:'#FBBF24'},
+    {label:'Crypto', val:c.crypto, color:'#A78BFA'},
+    {label:'IDX',    val:c.idx,    color:'#60A5FA'},
+    {label:'US ETF', val:c.us,     color:'#F472B6'},
+    {label:'Bonds',  val:c.bonds,  color:'#34D399'},
+    {label:'Liquid', val:c.liquid, color:'#94A3B8'},
+  ].map(s => ({...s, pct: s.val/total}));
+  drawDonut(slices);
+  document.getElementById('alloc-legend').innerHTML = slices.map(s => `
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${s.color}"></div>
+      <span class="legend-name">${s.label}</span>
+      <span class="legend-val" style="font-size:11px">${fmtShortIDR(s.val)}</span>
+      <span class="legend-pct">${(s.pct*100).toFixed(0)}%</span>
+    </div>`).join('');
+
+  // Net worth trend chart
+  renderNWChart();
+
+  // Holdings list
+  const r_usd = l.USD_IDR.price;
+  const idxH = hIdx();
+  const etfH = hEtf();
+  const idxSub = Object.keys(idxH).join(' · ') || 'No IDX holdings';
+  const rows = [
+    {icon:'🟡', name:'Gold', sub:`${hHold('gold_grams')} g · Antam · Rp ${Math.round(l.GOLD_IDR_GRAM.price).toLocaleString('id-ID')}/g`, val:c.gold, bg:'#2A2010', id:'gold',
+     detail:`<div style="font-size:12px;color:var(--text2)"><div style="display:flex;justify-content:space-between;padding:4px 0"><span>Grams</span><span style="color:var(--text)">${hHold('gold_grams')} g</span></div><div style="display:flex;justify-content:space-between;padding:4px 0"><span>Price/gram</span><span style="color:var(--gold)">${fmtIDR(l.GOLD_IDR_GRAM.price)}</span></div><div style="display:flex;justify-content:space-between;padding:4px 0"><span>Total</span><span style="color:var(--gold)">${fmtIDR(c.gold)}</span></div></div>`},
+    {icon:'🪙', name:'Crypto — Binance', sub:'BTC · ETH · BNB · SOL + Futures', val:c.crypto, bg:'#1A1535', id:'crypto',
+     detail:[['BTC',`${hCryp('BTC')} BTC @ $${Math.round(l.BTC?.price||0).toLocaleString()}`,hCryp('BTC')*(l.BTC?.price||0)*r_usd,'var(--purple)'],
+             ['ETH',`${hCryp('ETH').toFixed(3)} ETH @ $${Math.round(l.ETH?.price||0).toLocaleString()}`,hCryp('ETH')*(l.ETH?.price||0)*r_usd,'var(--purple)'],
+             ['BNB',`${hCryp('BNB').toFixed(2)} BNB @ $${Math.round(l.BNB?.price||0).toLocaleString()}`,hCryp('BNB')*(l.BNB?.price||0)*r_usd,'var(--purple)'],
+             ['SOL',`${hCryp('SOL').toFixed(2)} SOL @ $${Math.round(l.SOL?.price||0).toLocaleString()}`,hCryp('SOL')*(l.SOL?.price||0)*r_usd,'var(--purple)'],
+             ['Stables','USDC + USDT',(hCryp('USDC')+hCryp('USDT'))*r_usd,'var(--blue)'],
+             ['Futures','Margin balance',hHold('futures_usd')*r_usd,'var(--blue)']].map(([n,s,v,c])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:12px;font-weight:500">${n}</div><div style="font-size:11px;color:var(--text3)">${s}</div></div><div style="font-size:12px;font-weight:600;color:${c}">${fmtIDR(v)}</div></div>`).join('')},
+    {icon:'📈', name:'IDX — Stockbit', sub:idxSub, val:c.idx, bg:'#0F1E35', id:'idx',
+     detail:Object.entries(idxH).map(([t,lots])=>{const px=l[t]?.price||0;return`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:12px;font-weight:500">${t}</div><div style="font-size:11px;color:var(--text3)">${lots} lot · Rp ${Math.round(px).toLocaleString('id-ID')}/sh</div></div><div style="font-size:12px;font-weight:600;color:var(--blue)">${fmtIDR(lots*100*px)}</div></div>`;}).join('')},
+    {icon:'🇺🇸', name:'US ETF — Pluang', sub:`SPY ${(etfH.SPY||0).toFixed(3)} sh · VOO ${(etfH.VOO||0).toFixed(3)} sh`, val:c.us, bg:'#0F1E35', id:'us',
+     detail:[['SPY',`${(etfH.SPY||0).toFixed(6)} shares @ $${l.SPY?.price?.toFixed(2)||0}`,(etfH.SPY||0)*(l.SPY?.price||0)*r_usd,'var(--green)'],
+             ['VOO',`${(etfH.VOO||0).toFixed(6)} shares @ $${l.VOO?.price?.toFixed(2)||0}`,(etfH.VOO||0)*(l.VOO?.price||0)*r_usd,'var(--green)'],
+             ['Cash',`$${hBal('pluang_cash_usd').toFixed(2)} wallet balance`,hBal('pluang_cash_usd')*r_usd,'var(--text2)']].map(([n,s,v,c])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:12px;font-weight:500">${n}</div><div style="font-size:11px;color:var(--text3)">${s}</div></div><div style="font-size:12px;font-weight:600;color:${c}">${fmtIDR(v)}</div></div>`).join('')},
+    {icon:'🏛️', name:'Bonds — Bibit', sub:'SBR014-T4 · FR0076', val:c.bonds, bg:'#0D2818', id:'bonds',
+     detail:`<div style="font-size:12px;color:var(--text2)"><div style="display:flex;justify-content:space-between;padding:4px 0"><span>SBR014-T4</span><span style="color:var(--green)">${fmtIDR(hBond('sbr014'))}</span></div><div style="display:flex;justify-content:space-between;padding:4px 0"><span>FR0076</span><span style="color:var(--green)">${fmtIDR(hBond('fr0076'))}</span></div></div>`},
+    {icon:'💵', name:'Liquid / Cash', sub:'BCA · Stockbit RDN · Pluang · GoPay', val:c.liquid, bg:'#0D1F2E', id:'liquid',
+     detail:[['BCA Savings','Tahapan Xpresi',hBal('bca_savings'),'var(--blue)'],
+             ['BCA Deposits','CC reserve',hBal('bca_deposits'),'var(--blue)'],
+             ['Stockbit RDN','Cash in broker',hBal('stockbit_rdn'),'var(--blue)'],
+             ['Pluang Cash',`$${hBal('pluang_cash_usd')}`,hBal('pluang_cash_usd')*r_usd,'var(--blue)'],
+             ['PayPal',`$${hBal('paypal_usd')}`,hBal('paypal_usd')*r_usd,'var(--blue)'],
+             ['GoPay','e-Wallet',hBal('gopay'),'var(--text2)'],
+             ['Cash','On hand',hBal('cash'),'var(--text2)']].map(([n,s,v,c])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:12px;font-weight:500">${n}</div><div style="font-size:11px;color:var(--text3)">${s}</div></div><div style="font-size:12px;font-weight:600;color:${c}">${fmtIDR(v)}</div></div>`).join('')},
+  ];
+  document.getElementById('holdings-list').innerHTML = rows.map((r, i) => `
+    <div${i>0?' style="border-top:1px solid var(--border)"':''}> 
+      <div class="expand-header" onclick="toggleExp('${r.id}')">
+        <div style="flex:1;min-width:0;display:flex;align-items:flex-start;gap:10px">
+          <div class="asset-icon" style="background:${r.bg};flex-shrink:0">${r.icon}</div>
+          <div style="min-width:0"><div class="asset-name">${r.name}</div><div class="asset-sub">${r.sub}</div></div>
+        </div>
+        <div style="width:130px;flex-shrink:0;display:flex;align-items:flex-start;justify-content:flex-end;gap:8px;padding-top:2px">
+          <div style="text-align:right"><div class="asset-value">${fmtIDR(r.val)}</div><div class="asset-pct">${(r.val/total*100).toFixed(1)}%</div></div>
+          <div class="expand-arrow" id="ea-${r.id}" style="margin-top:2px;flex-shrink:0">▼</div>
+        </div>
+      </div>
+      <div class="expand-body" id="eb-${r.id}"><div style="padding:8px 12px;background:var(--surface2);border-radius:8px;margin-bottom:8px">${typeof r.detail==='string'?r.detail:r.detail}</div></div>
+    </div>`).join('');
+}
+
+function renderNWChart() {
+  if (!P) return;
+  const r = P.latest?.USD_IDR?.price || 18031;
+  const dp = P.daily.prices, dh = P.daily.holdings;
+  const allDates = Object.keys(dp?.GOLD_IDR_GRAM||{}).sort();
+  let dates = allDates;
+  if (nwPeriod==='1w') dates=allDates.slice(-7);
+  if (nwPeriod==='1m') dates=allDates.slice(-30);
+  if (nwPeriod==='6m') dates=allDates.slice(-180);
+
+  const allLayers = [
+    { key:'nw',     label:'Net Worth', color:'#4ADE80', isNW:true,
+      vals: dates.map(d => P.daily.networth[d] || null) },
+    { key:'gold',   label:'Gold',    color:'#FBBF24',
+      vals: dates.map(d => (dp?.GOLD_IDR_GRAM?.[d]||0)*hHold('gold_grams')) },
+    { key:'crypto', label:'Crypto',  color:'#A78BFA',
+      vals: dates.map(d => {
+        const u=dp?.USD_IDR?.[d]||r;
+        return ((dp?.BTC?.[d]||0)*hCryp('BTC')+(dp?.ETH?.[d]||0)*hCryp('ETH')+(dp?.BNB?.[d]||0)*hCryp('BNB')+(dp?.SOL?.[d]||0)*hCryp('SOL')+hCryp('USDC')+hCryp('USDT')+hHold('futures_usd'))*u;
+      })},
+    { key:'idx',    label:'IDX',     color:'#60A5FA',
+      vals: dates.map(d => Object.entries(hIdx()).reduce((s,[t,lots])=>s+lots*100*(dp[t]?.[d]||0),0))},
+    { key:'us',     label:'US',      color:'#F472B6',
+      vals: dates.map(d => {
+        const u=dp?.USD_IDR?.[d]||r;
+        return ((dh?.pluang?.SPY?.[d]||0)*(dp?.SPY?.[d]||0)+(dh?.pluang?.VOO?.[d]||0)*(dp?.VOO?.[d]||0))*u;
+      })},
+    { key:'bonds',  label:'Bonds',   color:'#34D399',
+      vals: dates.map(()=>20600000) },
+    { key:'liquid', label:'Liquid',  color:'#94A3B8',
+      vals: dates.map(d => {
+        const u=dp?.USD_IDR?.[d]||r;
+        const bca=P.monthly_liquid||{}, bk=Object.keys(bca).filter(k=>k<=d).sort();
+        return (bk.length?bca[bk[bk.length-1]]:0)+4000000+(dh?.stockbit_rdn?.[d]||0)+(dh?.pluang_cash?.[d]||0)*u+28000+68000+1207*u;
+      })},
+  ];
+
+  if (!nwActive) nwActive = new Set(['nw']);
+  renderNWToggles(allLayers);
+  const visible = allLayers.filter(l => nwActive.has(l.key));
+  requestAnimationFrame(() => drawMultiChart('nw-canvas','nw-chart-wrap','nw-tip', dates, visible, fmtShortIDR, 180));
+}
+
+function renderNWToggles(allLayers) {
+  const wrap = document.getElementById('nw-toggles');
+  if (!wrap) return;
+  wrap.innerHTML = allLayers.map(l => {
+    const on = nwActive.has(l.key);
+    return `<button onclick="toggleNWLayer('${l.key}')"
+      style="padding:4px 10px;border-radius:20px;border:1px solid ${on?l.color:'var(--border)'};
+             background:${on?l.color+'22':'transparent'};color:${on?l.color:'var(--text3)'};
+             font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap">
+      ${l.label}
+    </button>`;
+  }).join('');
+}
+
+function toggleNWLayer(key) {
+  if (nwActive.has(key)) {
+    if (nwActive.size > 1) nwActive.delete(key);
+  } else {
+    nwActive.add(key);
+  }
+  renderNWChart();
+}
+
+function setPeriod(p, el) {
+  nwPeriod = p;
+  document.querySelectorAll('#nw-period-tabs .period-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderNWChart();
+}
+
+// ═══════════════════════════════════════════════════════
+// MULTI-LINE CHART (portfolio trend with toggles)
+// ═══════════════════════════════════════════════════════
+function drawMultiChart(canvasId, wrapId, tipId, datePts, layers, yFmt, heightPx) {
+  const canvas = document.getElementById(canvasId);
+  const wrap   = document.getElementById(wrapId);
+  const tip    = document.getElementById(tipId);
+  if (!canvas || !wrap || !layers.length || datePts.length < 2) return;
+
+  const H  = heightPx || 180;
+  const W  = wrap.getBoundingClientRect().width || wrap.offsetWidth || 340;
+  const DPR = window.devicePixelRatio || 1;
+  wrap.style.height = H + 'px';
+  canvas.width  = W * DPR; canvas.height = H * DPR;
+  canvas.style.width  = W + 'px'; canvas.style.height = H + 'px';
+
+  const ctx = canvas.getContext('2d');
+  const PAD = {t:10, b:28, l:62, r:10};
+  const cW  = W - PAD.l - PAD.r, cH = H - PAD.t - PAD.b;
+  const allVals = layers.flatMap(l => l.vals.filter(v => v !== null && v > 0));
+  const maxVal  = Math.max(...allVals, 1);
+  const xOf = i => PAD.l + (i / (datePts.length - 1)) * cW;
+  const yOf = v => PAD.t + (1 - v / maxVal) * cH;
+
+  function paint(hoverIdx) {
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    // Grid + Y labels
+    ctx.strokeStyle = '#2E324840'; ctx.lineWidth = 1;
+    ctx.fillStyle = '#565A75'; ctx.font = '10px -apple-system,sans-serif'; ctx.textAlign = 'right';
+    for (let i = 0; i <= 4; i++) {
+      const v = maxVal * i / 4, y = yOf(v);
+      ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(W - PAD.r, y); ctx.stroke();
+      ctx.fillText(yFmt ? yFmt(v) : fmtShortIDR(v), PAD.l - 4, y + 3);
+    }
+
+    // X labels
+    ctx.textAlign = 'center';
+    const step = Math.max(1, Math.floor(datePts.length / Math.floor(cW / 48)));
+    for (let i = 0; i < datePts.length; i += step)
+      ctx.fillText(datePts[i].slice(2, 7).replace('-', '/'), xOf(i), H - 6);
+
+    // Hover vertical line
+    if (hoverIdx !== undefined) {
+      ctx.beginPath(); ctx.moveTo(xOf(hoverIdx), PAD.t); ctx.lineTo(xOf(hoverIdx), H - PAD.b);
+      ctx.strokeStyle = '#ffffff18'; ctx.lineWidth = 1; ctx.stroke();
+    }
+
+    // Draw each layer
+    for (const layer of layers) {
+      const vals = layer.vals;
+      const isNW = layer.isNW;
+
+      if (!isNW) {
+        const grad = ctx.createLinearGradient(0, PAD.t, 0, H - PAD.b);
+        grad.addColorStop(0, layer.color + '30'); grad.addColorStop(1, layer.color + '04');
+        ctx.beginPath();
+        let first = true;
+        for (let i = 0; i < datePts.length; i++) {
+          if (vals[i] == null) continue;
+          first ? (ctx.moveTo(xOf(i), yOf(vals[i])), first=false) : ctx.lineTo(xOf(i), yOf(vals[i]));
+        }
+        ctx.lineTo(xOf(datePts.length - 1), H - PAD.b);
+        ctx.lineTo(xOf(0), H - PAD.b);
+        ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
+      }
+
+      ctx.beginPath();
+      let first = true;
+      for (let i = 0; i < datePts.length; i++) {
+        if (vals[i] == null) continue;
+        first ? (ctx.moveTo(xOf(i), yOf(vals[i])), first=false) : ctx.lineTo(xOf(i), yOf(vals[i]));
+      }
+      ctx.strokeStyle = layer.color; ctx.lineWidth = isNW ? 2 : 1.5;
+      ctx.lineJoin = 'round'; ctx.stroke();
+
+      if (hoverIdx !== undefined && vals[hoverIdx] != null) {
+        const px = xOf(hoverIdx), py = yOf(vals[hoverIdx]);
+        ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI*2);
+        ctx.fillStyle = '#0F1117'; ctx.fill();
+        ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI*2);
+        ctx.strokeStyle = layer.color; ctx.lineWidth = 2; ctx.stroke();
+      }
+    }
+  }
+
+  paint();
+
+  const showTip = (clientX) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = clientX - rect.left;
+    if (mx < PAD.l || mx > W - PAD.r) { if (tip) tip.style.opacity = 0; paint(); return; }
+    const idx = Math.max(0, Math.min(datePts.length-1, Math.round((mx - PAD.l) / cW * (datePts.length-1))));
+    paint(idx);
+    if (!tip) return;
+    const tipDate = document.getElementById(tipId+'-date');
+    const tipVals = document.getElementById(tipId+'-vals');
+    if (tipDate) tipDate.textContent = datePts[idx];
+    if (tipVals) tipVals.innerHTML = layers.map(l =>
+      `<div style="display:flex;justify-content:space-between;gap:12px;margin-top:3px">
+         <span style="color:${l.color};font-size:11px">${l.label}</span>
+         <span style="font-weight:600;font-size:11px">${yFmt?yFmt(l.vals[idx]||0):fmtIDR(l.vals[idx]||0)}</span>
+       </div>`).join('');
+    const refVal = layers[0].vals[idx] || 0;
+    let tx = xOf(idx) + 10;
+    if (tx + 160 > W) tx = xOf(idx) - 170;
+    tip.style.left    = Math.max(PAD.l, tx) + 'px';
+    tip.style.top     = Math.max(PAD.t, yOf(refVal) - 20) + 'px';
+    tip.style.opacity = 1;
+  };
+
+  canvas.addEventListener('mousemove',  e => showTip(e.clientX));
+  canvas.addEventListener('mouseleave', () => { if (tip) tip.style.opacity=0; paint(); });
+  canvas.addEventListener('touchmove',  e => { e.preventDefault(); showTip(e.touches[0].clientX); }, {passive:false});
+  canvas.addEventListener('touchend',   () => { if (tip) tip.style.opacity=0; paint(); });
+}
+
+// ═══════════════════════════════════════════════════════
+// CATEGORY HELPERS
+// ═══════════════════════════════════════════════════════
+const CAT_ICON  = {Food:'🍜',Transport:'🚗',Health:'💊',Entertainment:'🎬',
+                   Shopping:'🛍️','Home & Utilities':'🏠',Travel:'✈️',
+                   'Petty Cash':'💸',Income:'💰',Others:'👤',Transfer:'↔️','CC Payment':'💳'};
+const CAT_COLOR = {Food:'#FBBF24',Transport:'#34D399',Health:'#F87171',
+                   Entertainment:'#A78BFA',Shopping:'#FB923C',
+                   'Home & Utilities':'#60A5FA',Travel:'#38BDF8',
+                   'Petty Cash':'#94A3B8',Income:'#4ADE80',Others:'#CBD5E1'};
+const SPEND_CATS = ['Food','Transport','Health','Entertainment','Shopping','Home & Utilities','Travel','Petty Cash','Others'];
+
+// ═══════════════════════════════════════════════════════
+// SPENDING TAB
+// ═══════════════════════════════════════════════════════
+function stepMonth(dir) {
+  const sel = document.getElementById('spend-month');
+  const idx = sel.selectedIndex - dir;
+  if (idx >= 0 && idx < sel.options.length) {
+    sel.selectedIndex = idx;
+    renderSpending();
+  }
+}
+
+function initSpendDropdown() {
+  const sel = document.getElementById('spend-month');
+  const months = [...new Set(TXN_DATA.map(t=>t.d.slice(0,7)))].sort().reverse();
+  sel.innerHTML = months.map((m,i)=>`<option value="${m}"${i===0?' selected':''}>${fullMonthLabel(m)}</option>`).join('');
+  // Also init cat trend selector
+  const ct = document.getElementById('cat-trend-sel');
+  ct.innerHTML = '<option value="">📊 All Categories</option>' +
+    SPEND_CATS.map(c=>`<option value="${c}">${CAT_ICON[c]||''} ${c}</option>`).join('');
+}
+
+function renderSpending() {
+  const sel = document.getElementById('spend-month').value;
+  const entries = TXN_DATA.filter(t=>t.d.startsWith(sel));
+
+  const income   = entries.filter(t=>t.type==='credit').reduce((s,t)=>s+t.amt,0);
+  const expenses = entries.filter(t=>t.type==='debit'&&!['Transfer','CC Payment'].includes(t.cat)).reduce((s,t)=>s+t.amt,0);
+  const saved    = income - expenses;
+  const rate     = income > 0 ? saved/income : 0;
+
+  document.getElementById('sp-income').textContent  = fmtIDR(income);
+  document.getElementById('sp-exp').textContent     = fmtIDR(expenses);
+  document.getElementById('sp-saved').textContent   = fmtIDR(saved);
+  document.getElementById('sp-rate').textContent    = (rate*100).toFixed(1) + '%';
+
+  // By category
+  const cats = {};
+  entries.filter(t=>t.type==='debit'&&SPEND_CATS.includes(t.cat)).forEach(t=>{
+    cats[t.cat] = (cats[t.cat]||0) + t.amt;
+  });
+  const sorted = Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+  const maxVal = sorted[0]?.[1]||1;
+
+  document.getElementById('spend-cats').innerHTML = sorted.map(([cat,val])=>`
+    <div class="spend-bar-wrap" onclick="toggleCatDetail('${cat}','${sel}')">
+      <div class="spend-bar-header">
+        <span class="spend-bar-label">${CAT_ICON[cat]||'•'} ${cat}</span>
+        <span class="spend-bar-val">${fmtIDR(val)}</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${val/maxVal*100}%;background:${CAT_COLOR[cat]||'#94A3B8'}"></div></div>
+      <div class="cat-detail" id="cd-${cat.replace(/[^a-z]/gi,'_')}"></div>
+    </div>`).join('');
+}
+
+function toggleCatDetail(cat, month) {
+  const key = cat.replace(/[^a-z]/gi,'_');
+  const el  = document.getElementById('cd-' + key);
+  if (!el) return;
+  const isOpen = el.classList.contains('open');
+  document.querySelectorAll('.cat-detail').forEach(d=>{d.classList.remove('open');d.innerHTML='';});
+  if (isOpen) return;
+  el.classList.add('open');
+
+  const txns = TXN_DATA.filter(t=>t.d.startsWith(month)&&t.cat===cat&&t.type==='debit');
+
+  // Day bar chart (31 days, labels at bottom)
+  const daySpend = {};
+  txns.forEach(t=>{ const d=parseInt(t.d.slice(8)); daySpend[d]=(daySpend[d]||0)+t.amt; });
+  const maxD = Math.max(...Object.values(daySpend),1);
+  const barColor = CAT_COLOR[cat]||'#94A3B8';
+  const bars = Array.from({length:31},(_,i)=>i+1).map(d=>{
+    const v = daySpend[d]||0;
+    const h = v > 0 ? Math.max(3, Math.round(v/maxD*36)) : 2;
+    return `<div class="day-bar-col"><div class="day-bar-fill" style="height:${h}px;background:${v>0?barColor:'var(--border)'}"></div><div class="day-bar-lbl">${d%7===0?d:''}</div></div>`;
+  }).join('');
+
+  // Transaction list
+  const txnRows = txns.sort((a,b)=>b.d.localeCompare(a.d)).map(t=>`
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">
+      <div><div style="font-size:12px;font-weight:500">${t.desc}</div><div style="font-size:10px;color:var(--text3)">${t.d.slice(5).replace('-','/')} · ${t.src}</div></div>
+      <div style="font-size:12px;font-weight:600;color:var(--red);flex-shrink:0;margin-left:8px">${fmtIDR(t.amt)}</div>
+    </div>`).join('');
+
+  el.innerHTML = `
+    <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${CAT_ICON[cat]||''} ${cat}</div>
+    <div class="day-bars">${bars}</div>
+    <div style="margin-top:6px">${txnRows||'<div style="color:var(--text3);font-size:12px;padding:4px 0">No transactions</div>'}</div>`;
+}
+
+function setCatPeriod(p, el) {
+  catTrendPeriod = p;
+  document.querySelectorAll('#cat-period-tabs .period-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderCatTrend();
+}
+
+function renderCatTrend() {
+  const cat = document.getElementById('cat-trend-sel').value;
+  const months = [...new Set(TXN_DATA.map(t=>t.d.slice(0,7)))].sort();
+  let data = months.map(month=>({
+    d: month + '-15',
+    v: cat
+      ? TXN_DATA.filter(t=>t.d.startsWith(month)&&t.cat===cat&&t.type==='debit').reduce((s,t)=>s+t.amt,0)
+      : TXN_DATA.filter(t=>t.d.startsWith(month)&&t.type==='debit'&&SPEND_CATS.includes(t.cat)).reduce((s,t)=>s+t.amt,0)
+  }));
+  if (catTrendPeriod==='6m') data = data.slice(-6);
+  if (catTrendPeriod==='3m') data = data.slice(-3);
+  const color = cat ? (CAT_COLOR[cat]||'#94A3B8') : '#94A3B8';
+  requestAnimationFrame(() => drawChart('cat-trend-canvas','cat-trend-wrap','ct-tip',data.map(d=>d.d),data.map(d=>d.v),color,fmtIDR,160));
+}
+
+// ═══════════════════════════════════════════════════════
+// ASSETS TAB
+// ═══════════════════════════════════════════════════════
+function renderAssets() {
+  if (!P) return;
+  const c = calcTotals();
+  const l = P.latest;
+  const r = l.USD_IDR.price;
+
+  const liab = hLiab();
+  const totalInstallAmt = liab.installments.reduce((s,i)=>s+i.amt,0);
+  document.getElementById('assets-sub').textContent = `Net worth: ${fmtIDR(c.netWorth)}`;
+
+  document.getElementById('cc-alert').textContent =
+    `⚠️  BCA CC bill: ${fmtIDR(liab.cc_bill)} · Installments: ${fmtIDR(totalInstallAmt)} · Total: ${fmtIDR(liab.cc_bill+totalInstallAmt)}`;
+
+  // Investments
+  document.getElementById('inv-total').textContent = fmtIDR(c.invest);
+  document.getElementById('inv-list').innerHTML = [
+    {icon:'🟡',name:'Gold',sub:'210 g · Antam',val:c.gold,bg:'#2A2010'},
+    {icon:'🪙',name:'Crypto — Binance',sub:'BTC · ETH · BNB · SOL',val:c.crypto,bg:'#1A1535'},
+    {icon:'📈',name:'IDX Stocks — Stockbit',sub:'BBCA · BMRI · AADI · UNTR · ADRO · ITMG',val:c.idx,bg:'#0F1E35'},
+    {icon:'🇺🇸',name:'US ETF — Pluang',sub:`SPY + VOO`,val:c.us,bg:'#0F1E35'},
+    {icon:'🏛️',name:'Bonds — Bibit',sub:'SBR014-T4 · FR0076',val:c.bonds,bg:'#0D2818'},
+  ].map(a=>`<div class="asset-item"><div class="asset-icon" style="background:${a.bg}">${a.icon}</div><div class="asset-info"><div class="asset-name">${a.name}</div><div class="asset-sub">${a.sub}</div></div><div class="asset-right"><div class="asset-value">${fmtIDR(a.val)}</div></div></div>`).join('');
+
+  // Liquid
+  document.getElementById('liq-total').textContent = fmtIDR(c.liquid);
+  document.getElementById('liq-list').innerHTML = [
+    {icon:'🏦',name:'BCA Savings',sub:'Tahapan Xpresi',val:hBal('bca_savings')},
+    {icon:'📦',name:'BCA Deposits',sub:'CC reserve',val:hBal('bca_deposits')},
+    {icon:'📈',name:'Stockbit RDN',sub:'Broker cash',val:hBal('stockbit_rdn')},
+    {icon:'🇺🇸',name:'Pluang Cash',sub:`$${hBal('pluang_cash_usd')}`,val:hBal('pluang_cash_usd')*r},
+    {icon:'💵',name:'PayPal',sub:`$${hBal('paypal_usd')}`,val:hBal('paypal_usd')*r},
+    {icon:'💚',name:'GoPay',sub:'e-Wallet',val:hBal('gopay')},
+    {icon:'💰',name:'Cash',sub:'On hand',val:hBal('cash')},
+  ].map(a=>`<div class="asset-item"><div class="asset-icon" style="background:var(--surface2)">${a.icon}</div><div class="asset-info"><div class="asset-name">${a.name}</div><div class="asset-sub">${a.sub}</div></div><div class="asset-right"><div class="asset-value">${fmtIDR(a.val)}</div></div></div>`).join('');
+
+  // Liabilities
+  document.getElementById('liab-total').textContent = '-' + fmtIDR(liab.cc_bill + totalInstallAmt);
+
+  // Group installments by month
+  const grouped = {};
+  liab.installments.forEach(i=>{ grouped[i.month]=(grouped[i.month]||[]).concat(i); });
+  const futureRows = Object.entries(grouped).sort().map(([m,items])=>{
+    const tot = items.reduce((s,i)=>s+i.amt,0);
+    return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">
+      <div><div style="font-size:12px;font-weight:500">${fullMonthLabel(m)}</div>${items.map(i=>`<div style="font-size:10px;color:var(--text3)">${i.desc}</div>`).join('')}</div>
+      <div style="font-size:12px;font-weight:600;color:var(--red)">${fmtIDR(tot)}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('liab-list').innerHTML = `
+    <div class="expand-header" onclick="toggleExp('liab-cc')">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="asset-icon" style="background:var(--red-bg)">💳</div>
+        <div><div class="asset-name">BCA Credit Card</div><div class="asset-sub">Current bill + installments</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="asset-right"><div class="asset-value" style="color:var(--red)">-${fmtIDR(liab.cc_bill+totalInstallAmt)}</div></div>
+        <div class="expand-arrow" id="ea-liab-cc">▼</div>
+      </div>
+    </div>
+    <div class="expand-body" id="eb-liab-cc">
+      <div style="padding:8px 12px;background:var(--red-bg);border-radius:8px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">
+          <div><div style="font-size:12px;font-weight:500">Current bill</div><div style="font-size:10px;color:var(--text3)">Due 28 May 2026</div></div>
+          <div style="font-size:12px;font-weight:600;color:var(--red)">${fmtIDR(liab.cc_bill)}</div>
+        </div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:8px 0 4px">Future installments</div>
+        ${futureRows}
+        <div style="display:flex;justify-content:space-between;padding:6px 0;margin-top:2px">
+          <div style="font-size:12px;font-weight:600;color:var(--text2)">Total committed</div>
+          <div style="font-size:12px;font-weight:700;color:var(--red)">${fmtIDR(liab.cc_bill+totalInstallAmt)}</div>
+        </div>
+      </div>
+    </div>`;
+
+  renderAssetTrendChart();
+}
+
+function setAssetTrend(mode, el) {
+  assetTrendMode = mode;
+  document.querySelectorAll('#asset-trend-tabs .period-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderAssetTrendChart();
+}
+
+function renderAssetTrendChart() {
+  if (!P) return;
+  const dp = P.daily.prices || {};
+  const dh = P.daily.holdings || {};
+  const ml = P.monthly_liquid || {};
+  // Use price dates as the backbone (daily)
+  const allDates = Object.keys(dp.GOLD_IDR_GRAM || {}).sort();
+  let vals, color, dates = allDates;
+
+  if (assetTrendMode === 'invest') {
+    color = '#4ADE80';
+    vals = dates.map(d => {
+      const usdIdr = dp.USD_IDR?.[d] || 18031;
+      const gold   = (dp.GOLD_IDR_GRAM?.[d]||0) * hHold('gold_grams');
+      const crypto = ((dp.BTC?.[d]||0)*hCryp('BTC')+(dp.ETH?.[d]||0)*hCryp('ETH')+
+                      (dp.BNB?.[d]||0)*hCryp('BNB')+(dp.SOL?.[d]||0)*hCryp('SOL')+
+                      hCryp('USDC')+hCryp('USDT')+hHold('futures_usd')) * usdIdr;
+      const idx = Object.entries(hIdx()).reduce((s,[t,lots])=>s+lots*100*(dp[t]?.[d]||0),0);
+      const spy = (dh.pluang?.SPY?.[d]||0)*(dp.SPY?.[d]||0);
+      const voo = (dh.pluang?.VOO?.[d]||0)*(dp.VOO?.[d]||0);
+      const us  = (spy+voo)*usdIdr;
+      const bonds = 20600000;
+      return gold+crypto+idx+us+bonds;
+    });
+  } else if (assetTrendMode === 'liquid') {
+    color = '#60A5FA';
+    vals = dates.map(d => {
+      const usdIdr = dp.USD_IDR?.[d] || 18031;
+      const bKeys  = Object.keys(ml).filter(k=>k<=d).sort();
+      const bca    = bKeys.length ? ml[bKeys[bKeys.length-1]] : 0;
+      const rdn    = dh.stockbit_rdn?.[d] || 0;
+      const pcash  = (dh.pluang_cash?.[d]||0) * usdIdr;
+      return bca + 4000000 + rdn + pcash + 28000 + 68000 + 1207*usdIdr;
+    });
+  } else {
+    // Liabilities: from monthly CC billing data
+    color = '#F87171';
+    const liabByDate = {
+      '2025-12-31':212165,'2026-01-31':212165,'2026-02-28':2170006,
+      '2026-03-31':2206530,'2026-04-30':3511295,'2026-05-31':5024332
+    };
+    vals = dates.map(d=>{
+      const keys = Object.keys(liabByDate).filter(k=>k<=d).sort();
+      return keys.length ? liabByDate[keys[keys.length-1]] : 0;
+    });
+  }
+  requestAnimationFrame(() => drawChart('asset-canvas','asset-chart-wrap','asset-tip',dates,vals,color,fmtShortIDR,180));
+}
+
+// ═══════════════════════════════════════════════════════
+// TRANSACTIONS TAB
+// ═══════════════════════════════════════════════════════
+function initTxnDropdowns() {
+  const catSel = document.getElementById('txn-cat');
+  const mthSel = document.getElementById('txn-month');
+  const allCats = ['Income','Food','Transport','Health','Entertainment','Shopping',
+                   'Home & Utilities','Travel','Petty Cash','Others','CC Payment','Transfer'];
+  catSel.innerHTML = '<option value="all">All categories</option>' +
+    allCats.map(c=>`<option value="${c}">${CAT_ICON[c]||''} ${c}</option>`).join('');
+  const months = [...new Set(TXN_DATA.map(t=>t.d.slice(0,7)))].sort().reverse();
+  mthSel.innerHTML = '<option value="all">All months</option>' +
+    months.map(m=>`<option value="${m}">${fullMonthLabel(m)}</option>`).join('');
+}
+
+function renderTransactions() {
+  const catF = document.getElementById('txn-cat').value;
+  const mthF = document.getElementById('txn-month').value;
+  const srcF = document.getElementById('txn-src').value;
+
+  let all = [...TXN_DATA].sort((a,b)=>b.d.localeCompare(a.d));
+  if (catF !== 'all') all = all.filter(t=>t.cat===catF);
+  if (mthF !== 'all') all = all.filter(t=>t.d.startsWith(mthF));
+  if (srcF !== 'all') all = all.filter(t=>t.src===srcF);
+
+  const byMonth = {};
+  all.forEach(t=>{ const m=t.d.slice(0,7); (byMonth[m]=byMonth[m]||[]).push(t); });
+
+  const srcClass = {BCA:'src-bca',GoPay:'src-gopay',CC:'src-cc'};
+  let html = '';
+  Object.entries(byMonth).sort((a,b)=>b[0]<a[0]?-1:1).forEach(([month,txns])=>{
+    html += `<div class="txn-month-hdr">${fullMonthLabel(month)} · ${txns.length} transactions</div>`;
+    txns.forEach(t=>{
+      const isCredit = t.type==='credit';
+      html += `
+        <div class="txn-item" style="cursor:pointer" onclick="openTxnModal('${t.id}')">
+          <div class="txn-icon" style="background:${(CAT_COLOR[t.cat]||'#2A2E40')}22">${CAT_ICON[t.cat]||'•'}</div>
+          <div class="txn-info">
+            <div class="txn-name">${t.desc}</div>
+            <div class="txn-meta">${t.d.slice(5).replace('-','/')} · ${t.cat}<span class="src-tag ${srcClass[t.src]||''}">${t.src}</span></div>
+          </div>
+          <div class="txn-amt" style="color:${isCredit?'var(--green)':'var(--red)'}">${fmtIDR(t.amt)}</div>
+        </div>`;
+    });
+  });
+  document.getElementById('txn-list').innerHTML = html || '<div style="padding:40px 0;text-align:center;color:var(--text3)">No transactions</div>';
+}
+
+// ═══════════════════════════════════════════════════════
+// TRANSACTION CRUD MODAL
+// ═══════════════════════════════════════════════════════
+function openTxnModal(id) {
+  const allCats = Object.keys(CAT_ICON);
+  const catSel = document.getElementById('txn-modal-cat');
+  catSel.innerHTML = allCats.map(c=>`<option value="${c}">${CAT_ICON[c]} ${c}</option>`).join('');
+  const isNew = !id;
+  document.getElementById('txn-modal-title').textContent = isNew ? 'Add Transaction' : 'Edit Transaction';
+  document.getElementById('txn-modal-del-btn').style.display = isNew ? 'none' : '';
+  document.getElementById('txn-modal-id').value = id || '';
+  if (!isNew) {
+    const t = TXN_DATA.find(x=>x.id===id);
+    if (!t) return;
+    document.getElementById('txn-modal-date').value = t.d;
+    document.getElementById('txn-modal-desc').value = t.desc;
+    catSel.value = t.cat;
+    document.getElementById('txn-modal-src').value = t.src;
+    document.getElementById('txn-modal-type').value = t.type;
+    document.getElementById('txn-modal-amt').value = t.amt;
+  } else {
+    document.getElementById('txn-modal-date').value = new Date().toISOString().slice(0,10);
+    document.getElementById('txn-modal-desc').value = '';
+    catSel.value = 'Food';
+    document.getElementById('txn-modal-src').value = 'BCA';
+    document.getElementById('txn-modal-type').value = 'debit';
+    document.getElementById('txn-modal-amt').value = '';
+  }
+  document.getElementById('txn-modal-overlay').classList.add('open');
+}
+
+function closeTxnModal(e) {
+  if (!e || e.target === document.getElementById('txn-modal-overlay'))
+    document.getElementById('txn-modal-overlay').classList.remove('open');
+}
+
+async function saveTxnModal() {
+  const id   = document.getElementById('txn-modal-id').value;
+  const desc = document.getElementById('txn-modal-desc').value.trim();
+  const amt  = parseInt(document.getElementById('txn-modal-amt').value, 10);
+  if (!desc) { alert('Please enter a description.'); return; }
+  if (!amt || amt <= 0) { alert('Please enter a valid amount.'); return; }
+  const entry = {
+    id:   id || genId(),
+    d:    document.getElementById('txn-modal-date').value,
+    desc,
+    cat:  document.getElementById('txn-modal-cat').value,
+    src:  document.getElementById('txn-modal-src').value,
+    type: document.getElementById('txn-modal-type').value,
+    amt,
+  };
+  if (id) {
+    const idx = TXN_DATA.findIndex(x=>x.id===id);
+    if (idx>=0) TXN_DATA[idx] = entry;
+  } else {
+    TXN_DATA.push(entry);
+  }
+  await saveTxnData();
+  closeTxnModal();
+  initSpendDropdown();
+  initTxnDropdowns();
+  renderTransactions();
+  renderSpending();
+}
+
+async function deleteTxnModal() {
+  const id = document.getElementById('txn-modal-id').value;
+  if (!id) return;
+  TXN_DATA = TXN_DATA.filter(x=>x.id!==id);
+  await saveTxnData();
+  closeTxnModal();
+  renderTransactions();
+  renderSpending();
+}
+
+// ═══════════════════════════════════════════════════════
+// BOOT — fetch prices.json then render everything
+// ═══════════════════════════════════════════════════════
+async function boot() {
+  try {
+    const cfg = await fetch('config.json');
+    if (cfg.ok) {
+      const c = await cfg.json();
+      if (c.repo)     REPO     = c.repo;
+      if (c.base_url) BASE_URL = c.base_url;
+      applyConfig();
+    }
+  } catch(e) {}
+  try {
+    const res = await fetch(PRICES_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    P = await res.json();
+  } catch(e) {
+    console.warn('prices.json fetch failed, running with static data only:', e);
+    // Build a minimal P so UI still works
+    P = {latest:{GOLD_IDR_GRAM:{price:2381563,date:'2026-06-11'},USD_IDR:{price:18031,date:'2026-06-11'},BTC:{price:61449,date:'2026-06-11'},ETH:{price:1620,date:'2026-06-11'},BNB:{price:586,date:'2026-06-11'},SOL:{price:63,date:'2026-06-11'},SPY:{price:737,date:'2026-06-11'},VOO:{price:677,date:'2026-06-11'},BBCA:{price:5650,date:'2026-06-11'},BMRI:{price:4260,date:'2026-06-11'},AADI:{price:7975,date:'2026-06-11'},UNTR:{price:22000,date:'2026-06-11'},BREN:{price:4220,date:'2026-06-11'},ADRO:{price:1895,date:'2026-06-12'},ITMG:{price:14875,date:'2026-06-12'}},daily:{networth:{},prices:{},holdings:{}}};
+  }
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+
+  await loadHoldings();
+  await loadTxnData();
+  initSpendDropdown();
+  initTxnDropdowns();
+  renderSpending();
+  renderAssets();
+  renderTransactions();
+  // Render portfolio last with rAF so DOM is laid out and chart widths are available
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      renderPortfolio();
+    });
+  });
+}
+
+boot();
+</script>
+</body>
+</html>

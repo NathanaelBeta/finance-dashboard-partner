@@ -1,0 +1,35 @@
+{
+  "anchor_date": "2026-06-16",
+  "history_start": "2026-06-16",
+  "balances": {
+    "bca_savings": 0,
+    "bca_deposits": 0,
+    "gopay": 0,
+    "cash": 0,
+    "stockbit_rdn": 0,
+    "pluang_cash_usd": 0,
+    "paypal_usd": 0
+  },
+  "holdings": {
+    "gold_grams": 0,
+    "futures_usd": 0,
+    "crypto": {},
+    "idx": {},
+    "etf": {},
+    "bonds": {}
+  },
+  "idx_baseline": {},
+  "trades": {
+    "idx": [],
+    "etf": []
+  },
+  "cash_flows": {
+    "stockbit_idr": {},
+    "pluang_usd": {}
+  },
+  "cash_checkpoints": {},
+  "liabilities": {
+    "cc_bill": 0,
+    "installments": []
+  }
+}

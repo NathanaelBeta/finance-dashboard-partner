@@ -1070,6 +1070,14 @@ const EXTRACT_TOOL_SCHEMA = {
           },
           required: ['d','desc','cat','src','type','amt','note']
         }
+      },
+      period_end_balance: {
+        type: 'number',
+        description: 'The closing SALDO on the very last transaction row of this BCA Tahapan Xpresi savings statement, in IDR (drop decimals). Only include for BCA savings statements — omit for CC, GoPay, PayPal.'
+      },
+      period_end_date: {
+        type: 'string',
+        description: 'The last calendar day of this statement period, YYYY-MM-DD (e.g. "2026-05-31" for a PERIODE MEI 2026 statement). Only include for BCA savings statements — omit for others.'
       }
     },
     required: ['transactions']
@@ -1136,7 +1144,10 @@ async function parseStatementWithClaude(text, apiKey) {
   if (!toolBlock) throw new Error('Claude did not return a tool_use block — check API key');
   const txns = toolBlock.input.transactions;
   if (!Array.isArray(txns)) throw new Error('Claude response was truncated — try again (output may have hit token limit)');
-  return txns;
+  const checkpoint = (toolBlock.input.period_end_date && toolBlock.input.period_end_balance != null)
+    ? { date: toolBlock.input.period_end_date, balance: toolBlock.input.period_end_balance }
+    : null;
+  return { txns, checkpoint };
 }
 
 // Upload orchestrator: read file → call Claude → open preview
@@ -1161,18 +1172,20 @@ async function handleStatementUpload() {
 
   try {
     const allTransactions = [];
+    const allCheckpoints = [];
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       statusEl.textContent = `📄 [${i + 1}/${files.length}] Reading ${file.name}…`;
       const text = await extractTextFromFile(file);
       if (!text.trim()) throw new Error(`Could not extract text from ${file.name} — is this a scanned (image) PDF?`);
       statusEl.textContent = `✓ [${i + 1}/${files.length}] ${text.length.toLocaleString()} chars · Calling Claude…`;
-      const txns = await parseStatementWithClaude(text, apiKey);
+      const { txns, checkpoint } = await parseStatementWithClaude(text, apiKey);
       allTransactions.push(...txns);
+      if (checkpoint) allCheckpoints.push(checkpoint);
     }
     statusEl.style.color = 'var(--green)';
     statusEl.textContent = `✓ Claude found ${allTransactions.length} transactions across ${files.length} file${files.length > 1 ? 's' : ''} — review below`;
-    renderUploadPreview(allTransactions);
+    renderUploadPreview(allTransactions, allCheckpoints);
   } catch(e) {
     statusEl.style.color = 'var(--red)';
     statusEl.textContent = '⚠ ' + e.message;
@@ -1182,15 +1195,23 @@ async function handleStatementUpload() {
 
 // Preview modal: render parsed transactions with checkboxes + editable categories
 let _previewTxns = [];
+let _previewCheckpoints = [];
 
-function renderUploadPreview(transactions) {
+function renderUploadPreview(transactions, checkpoints = []) {
   _previewTxns = transactions;
+  _previewCheckpoints = checkpoints;
   const dupSet = new Set(TXN_DATA.map(t => t.d + '|' + t.amt));
   const allCats = Object.keys(CAT_ICON);
 
   let html = '';
+  if (checkpoints.length) {
+    html += '<div style="background:var(--surface3);border-radius:6px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:var(--text2)">' +
+      '📌 BCA balance checkpoint' + (checkpoints.length > 1 ? 's' : '') + ' found: ' +
+      checkpoints.map(cp => cp.date + ' → Rp ' + Math.round(cp.balance).toLocaleString('id-ID')).join(', ') +
+      ' · will be saved to holdings.json</div>';
+  }
   if (!transactions.length) {
-    html = '<div style="padding:24px;text-align:center;color:var(--text3)">No transactions found in the statement.</div>';
+    html += '<div style="padding:24px;text-align:center;color:var(--text3)">No transactions found in the statement.</div>';
   }
   transactions.forEach((t, i) => {
     const isDup = dupSet.has(t.d + '|' + t.amt);
@@ -1249,7 +1270,20 @@ async function importFromPreview() {
     });
   });
 
-  if (!toImport.length) { alert('No transactions selected.'); return; }
+  if (!toImport.length && !_previewCheckpoints.length) { alert('No transactions selected.'); return; }
+
+  // Save BCA month-end checkpoints to holdings.json
+  if (_previewCheckpoints.length && H) {
+    if (!H.cash_checkpoints) H.cash_checkpoints = {};
+    for (const cp of _previewCheckpoints) {
+      H.cash_checkpoints[cp.date] = { ...(H.cash_checkpoints[cp.date] || {}), bca: cp.balance };
+      // Push history_start back to the first of that checkpoint's month
+      const monthStart = cp.date.slice(0, 7) + '-01';
+      if (!H.history_start || monthStart < H.history_start) H.history_start = monthStart;
+    }
+    const token = localStorage.getItem('gh_token');
+    if (token) await saveHoldingsToGitHub(token);
+  }
 
   TXN_DATA.push(...toImport);
   await saveTxnData();
